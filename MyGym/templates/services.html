@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<section id="services" style="padding: 140px 10%; background: #0a0a0a; color: white;">
+    <div style="text-align: center; margin-bottom: 60px;">
+        <span style="color: #e63329; text-transform: uppercase; letter-spacing: 2px; font-size: 0.9rem; font-weight: 700;">What We Offer</span>
+        <h2 style="font-family: 'Bebas Neue', sans-serif; font-size: 3.5rem; margin: 10px 0 20px 0; letter-spacing: 1px;">OUR SERVICES</h2>
+        <p style="color: #aaa; max-width: 600px; margin: 0 auto; line-height: 1.6;">World-class facilities and expert-led programs designed to push your limits.</p>
+    </div>
+    
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px;">
+        {% for slug, info in services.items %}
+        <a href="{% url 'service_detail' slug %}" style="text-decoration: none; color: inherit;">
+            <div style="background: #141414; padding: 40px; border: 1px solid #222; transition: all 0.3s ease; cursor: pointer;" onmouseover="this.style.borderColor='#e63329'; this.style.transform='translateY(-5px)';" onmouseout="this.style.borderColor='#222'; this.style.transform='translateY(0)';">
+                <div style="font-size: 1.5rem; font-family: 'Bebas Neue', sans-serif; letter-spacing: 1px; margin-bottom: 15px; color: white; display: flex; align-items: center; gap: 10px;">
+                    <span>{{ info.icon }}</span> {{ info.title }}
+                </div>
+                <p style="color: #888; font-size: 0.95rem; line-height: 1.6; margin-bottom: 20px;">{{ info.desc }}</p>
+                <span style="color: #e63329; font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">Learn More →</span>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+</section>
+{% endblock content %}

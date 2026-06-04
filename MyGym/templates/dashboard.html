@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - MyGym</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root { --red: #e63329; --dark: #0a0a0a; --gray: #1a1a1a; --card: #141414; }
+        body { font-family: 'Barlow', sans-serif; background: var(--dark); color: white; display: flex; min-height: 100vh; }
+
+        /* SIDEBAR */
+        .sidebar {
+            width: 260px;
+            background: var(--gray);
+            display: flex;
+            flex-direction: column;
+            padding: 32px 0;
+            position: fixed;
+            height: 100vh;
+            border-right: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .sidebar-logo {
+            font-family: 'Bebas Neue';
+            font-size: 1.8rem;
+            letter-spacing: 3px;
+            padding: 0 28px 32px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .sidebar-logo span { color: var(--red); }
+
+        .sidebar-menu {
+            list-style: none;
+            padding: 24px 0;
+            flex: 1;
+        }
+
+        .sidebar-menu li a {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 28px;
+            color: #888;
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            transition: all 0.3s;
+            border-left: 3px solid transparent;
+        }
+
+        .sidebar-menu li a:hover,
+        .sidebar-menu li a.active {
+            color: white;
+            background: rgba(255,255,255,0.04);
+            border-left-color: var(--red);
+        }
+
+        .sidebar-menu li a .icon { font-size: 1.1rem; }
+
+        .sidebar-bottom {
+            padding: 24px 28px;
+            border-top: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .sidebar-user {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .avatar {
+            width: 40px;
+            height: 40px;
+            background: var(--red);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Bebas Neue';
+            font-size: 1.1rem;
+        }
+
+        .user-name { font-size: 0.9rem; font-weight: 600; }
+        .user-plan { font-size: 0.75rem; color: #888; text-transform: uppercase; letter-spacing: 1px; }
+
+        .logout-btn {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            background: rgba(230,51,41,0.12);
+            border: 1px solid rgba(230,51,41,0.3);
+            color: var(--red);
+            text-align: center;
+            text-decoration: none;
+            font-size: 0.8rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            transition: all 0.3s;
+        }
+        .logout-btn:hover { background: var(--red); color: white; }
+
+        /* MAIN CONTENT */
+        .main {
+            margin-left: 260px;
+            flex: 1;
+            padding: 40px;
+        }
+
+        .page-header { margin-bottom: 36px; }
+        .page-header h1 { font-family: 'Bebas Neue'; font-size: 2.5rem; letter-spacing: 2px; }
+        .page-header h1 span { color: var(--red); }
+        .page-header p { color: #888; font-size: 0.9rem; margin-top: 6px; }
+
+        /* STAT CARDS */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 36px;
+        }
+
+        .stat-card {
+            background: var(--card);
+            border: 1px solid rgba(255,255,255,0.06);
+            padding: 24px;
+            border-top: 3px solid var(--red);
+            transition: border-color 0.3s;
+        }
+
+        .stat-card:hover { border-color: rgba(255,255,255,0.1); border-top-color: var(--red); }
+
+        .stat-label {
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .stat-value {
+            font-family: 'Bebas Neue';
+            font-size: 2rem;
+            color: white;
+            line-height: 1;
+        }
+
+        .stat-sub {
+            font-size: 0.8rem;
+            color: #555;
+            margin-top: 6px;
+        }
+
+        /* PROFILE CARD */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1.4fr;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        .card {
+            background: var(--card);
+            border: 1px solid rgba(255,255,255,0.06);
+            padding: 28px;
+        }
+
+        .card-title {
+            font-family: 'Bebas Neue';
+            font-size: 1.3rem;
+            letter-spacing: 1px;
+            margin-bottom: 24px;
+            padding-bottom: 14px;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card-title span { color: var(--red); }
+
+        .profile-avatar {
+            width: 80px;
+            height: 80px;
+            background: var(--red);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Bebas Neue';
+            font-size: 2rem;
+            margin: 0 auto 20px;
+        }
+
+        .profile-name {
+            text-align: center;
+            font-family: 'Bebas Neue';
+            font-size: 1.5rem;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+        }
+
+        .profile-username {
+            text-align: center;
+            color: #666;
+            font-size: 0.85rem;
+            margin-bottom: 20px;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 14px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .badge-basic    { background: rgba(255,255,255,0.08); color: #aaa; }
+        .badge-standard { background: rgba(52,152,219,0.2); color: #3498db; }
+        .badge-premium  { background: rgba(230,51,41,0.2); color: var(--red); }
+
+        .profile-center { text-align: center; }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+            font-size: 0.875rem;
+        }
+
+        .info-row:last-child { border-bottom: none; }
+        .info-label { color: #666; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; font-size: 0.75rem; }
+        .info-value { color: #ccc; }
+
+        .membership-banner {
+            background: linear-gradient(135deg, rgba(230,51,41,0.15), rgba(230,51,41,0.05));
+            border: 1px solid rgba(230,51,41,0.2);
+            padding: 20px 24px;
+            margin-top: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .membership-banner p { font-size: 0.85rem; color: #888; margin-top: 4px; }
+        .membership-banner strong { font-family: 'Bebas Neue'; font-size: 1.2rem; letter-spacing: 1px; }
+
+        .btn-upgrade {
+            background: var(--red);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-family: 'Barlow';
+            font-size: 0.8rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            cursor: pointer;
+            text-decoration: none;
+            white-space: nowrap;
+        }
+    </style>
+</head>
+<body>
+
+<div class="sidebar">
+    <div class="sidebar-logo">My<span>Gym</span></div>
+    <ul class="sidebar-menu">
+        <li><a href="{% url 'dashboard' %}" class="active"><span class="icon">📊</span> Dashboard</a></li>
+        <li><a href="{% url 'home' %}"><span class="icon">🏠</span> Home</a></li>
+        <li><a href="{% url 'workouts' %}"><span class="icon">🏋️</span> My Workouts</a></li>
+        <li><a href="{% url 'schedule' %}"><span class="icon">📅</span> Schedule</a></li>
+        <li><a href="{% url 'body_stats' %}"><span class="icon">📈</span> Body Stats</a></li>
+        <li><a href="{% url 'nutrition_ai' %}"><span class="icon">🥗</span> Nutrition</a></li>
+        <li><a href="{% url 'membership_qr' %}"><span class="icon">📱</span> Membership QR</a></li>
+        <li><a href="{% url 'settings' %}"><span class="icon">⚙️</span> Settings</a></li>
+        <li><a href="{% url 'notifications' %}">
+            <span class="icon">🔔</span> Notifications
+            {% if unread_notifs %}<span class="badge">{{ unread_notifs }}</span>{% endif %}
+        </a></li>
+       <li><a href="{% url 'settings' %}">⚙️ Settings</a></li>
+    </ul>
+</div>
+    <div class="sidebar-bottom">
+        <div class="sidebar-user">
+            <div class="avatar">{{ user.first_name|first|upper }}{{ user.last_name|first|upper }}</div>
+            <div>
+                <div class="user-name">{{ user.first_name }} {{ user.last_name }}</div>
+                <div class="user-plan">{{ member.membership_type|title }} Member</div>
+            </div>
+        </div>
+        <a href="{% url 'membership_qr' %}" style="display:block;background:#111;border:1px solid #1a1a1a;border-radius:4px;padding:1.2rem;text-decoration:none;text-align:center;margin-top:1rem;">
+  <div style="font-size:2rem;margin-bottom:0.5rem;">📱</div>
+  <div style="font-family:'Bebas Neue',sans-serif;font-size:1rem;color:#fff;letter-spacing:2px;">MEMBERSHIP QR</div>
+  <div style="font-size:0.8rem;color:#888;margin-top:0.3rem;">Tap to view check-in QR</div>
+        </a>
+    </div>
+</div>
+
+<!-- DYNAMIC CONTENT HOLDER -->
+<div class="main-content-area" style="width: 100%;">
+    {% block dashboard_content %}
+    <div style="padding: 40px; margin-left: 260px;">
+        <div class="page-header">
+            <h1>Welcome Back, <span>{{ user.first_name|default:user.username }}</span>!</h1>
+            <p>Here's your fitness summary for today — keep pushing!</p>
+        </div>
+
+        <!-- STATS -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Membership</div>
+                <div class="stat-value">{{ member.membership_type|title }}</div>
+                <div class="stat-sub">Current Plan</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Member Since</div>
+                <div class="stat-value">{{ member.join_date|date:"M Y" }}</div>
+                <div class="stat-sub">Join Date</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Status</div>
+                {% if member.is_active %}
+                    <div class="stat-value" style="color:#28a745;">Active</div>
+                {% else %}
+                    <div class="stat-value" style="color:var(--red);">Inactive</div>
+                {% endif %}
+                <div class="stat-sub">Account Status</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Workouts</div>
+                <div class="stat-value">{{ monthly_count|default:"0" }}</div>
+                <div class="stat-sub">This Month</div>
+            </div>
+        </div>
+            <div class="stat-card">
+                <div class="stat-label">STREAK</div>
+                <div class="stat-value" style="color:#ed8936;">{{ streak }} 🔥</div>
+                <div class="stat-sub">Day streak</div>
+            </div>
+
+        <!-- PROFILE & INFO -->
+        <div class="grid-2">
+            <div class="card">
+                <div class="card-title">👤 <span>Profile</span></div>
+                <div class="profile-center">
+                    <div class="profile-avatar">
+                        {{ user.first_name|first|upper }}{{ user.last_name|first|upper }}
+                    </div>
+                    <div class="profile-name">{{ user.first_name }} {{ user.last_name }}</div>
+                    <div class="profile-username">@{{ user.username }}</div>
+                    <span class="badge badge-{{ member.membership_type }}">
+                        {{ member.membership_type|title }} Plan
+                    </span>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">📋 <span>Member Info</span></div>
+                <div class="info-row">
+                    <span class="info-label">Email</span>
+                    <span class="info-value">{{ user.email }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Phone</span>
+                    <span class="info-value">{{ member.phone|default:"Not provided" }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Gender</span>
+                    <span class="info-value">{{ member.gender|title|default:"Not provided" }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Export & Email buttons -->
+        <div style="display:flex;gap:1rem;margin-top:1.5rem;flex-wrap:wrap;">
+          <a href="{% url 'export_workout_pdf' %}"
+            style="background:#111;border:1px solid #e53e3e;color:#e53e3e;padding:0.7rem 1.5rem;border-radius:4px;text-decoration:none;font-weight:700;font-size:0.85rem;letter-spacing:1px;">
+            📄 EXPORT PDF REPORT
+          </a>
+          <a href="{% url 'send_email_report' %}"
+            style="background:#e53e3e;color:#fff;padding:0.7rem 1.5rem;border-radius:4px;text-decoration:none;font-weight:700;font-size:0.85rem;letter-spacing:1px;">
+            📧 EMAIL MY REPORT
+          </a>
+        </div>
+
+    </div>
+    {% endblock %}
+</div>
+
+</body>
+</html>

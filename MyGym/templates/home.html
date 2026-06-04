@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<section id="home">
+    <div class="hero-bg"></div>
+    <div class="hero-content">
+        <div class="hero-tag">Premium Fitness</div>
+        <h1 class="hero-title">Live Your<br><span>Best</span> Life</h1>
+        <p class="hero-desc">At MyGym, fitness is not just a destination — it's a journey towards a healthier, stronger you.</p>
+        <div class="hero-btns">
+            <a href="{% url 'services' %}" class="btn-primary">Get Started</a>
+            <a href="{% url 'support' %}" class="btn-outline">Learn More</a>
+        </div>
+        <div class="hero-stats">
+            <div><div class="stat-num">5+</div><div class="stat-label">Years of Service</div></div>
+            <div><div class="stat-num">10+</div><div class="stat-label">Certified Trainers</div></div>
+            <div><div class="stat-num">786+</div><div class="stat-label">Happy Members</div></div>
+            <div><div class="stat-num">95%</div><div class="stat-label">Satisfaction</div></div>
+        </div>
+    </div>
+</section>
+{% endblock content %}

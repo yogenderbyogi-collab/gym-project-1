@@ -1,0 +1,342 @@
+{% extends 'base.html' %}
+{% load custom_filters %}
+{% block content %}
+<div class="dashboard-layout">
+  <div class="sidebar">
+    <div class="sidebar-logo">My<span>Gym</span></div>
+    <ul class="sidebar-menu">
+      <li><a href="{% url 'dashboard' %}"><span class="icon">📊</span> Dashboard</a></li>
+      <li><a href="{% url 'home' %}"><span class="icon">🏠</span> Home</a></li>
+      <li><a href="{% url 'workouts' %}"><span class="icon">🏋️</span> My Workouts</a></li>
+      <li><a href="{% url 'schedule' %}" class="active"><span class="icon">📅</span> Schedule</a></li>
+      <li><a href="{% url 'body_stats' %}"><span class="icon">📈</span> Body Stats</a></li>
+      <li><a href="{% url 'nutrition_ai' %}"><span class="icon">🥗</span> Nutrition</a></li>
+      <li><a href="{% url 'membership_qr' %}"><span class="icon">🪪</span> Membership QR</a></li>
+      <li><a href="{% url 'notifications' %}"><span class="icon">🔔</span> Notifications</a></li>
+      <li><a href="{% url 'settings' %}"><span class="icon">⚙️</span> Settings</a></li>
+    </ul>
+    <div class="sidebar-member">
+      <div class="member-avatar">{{ request.user.username|first|upper }}</div>
+      <div class="member-info">
+        <div class="member-name">{{ request.user.get_full_name|default:request.user.username }}</div>
+        <div class="member-plan">Basic Member</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="main-content-area">
+    <div class="schedule-page">
+
+      <!-- Header -->
+      <div class="sc-header">
+        <div>
+          <h1 class="sc-title">MY <span style="color:#e63329">SCHEDULE</span></h1>
+          <p class="sc-sub">Your personalized weekly workout split — fully customizable</p>
+        </div>
+        <div style="display:flex;gap:1rem;align-items:center;flex-wrap:wrap;">
+          <div class="sc-week-badge">WEEK OF {{ week_start }}</div>
+          <button class="btn-add" onclick="openModal()">+ ADD SESSION</button>
+        </div>
+      </div>
+
+      <!-- Day Tabs -->
+      <div class="sc-days">
+        {% for day in days %}
+        <button class="sc-day {% if forloop.first %}active{% endif %}"
+          onclick="switchDay('{{ day }}', this)">
+          {{ day|slice:":3"|upper }}
+        </button>
+        {% endfor %}
+      </div>
+
+      <!-- Day Panels -->
+      {% for day in days %}
+      <div class="sc-panel {% if forloop.first %}active{% endif %}" id="panel-{{ day }}">
+        {% with sessions=schedule_by_day|get_item:day %}
+        {% if sessions %}
+          <div class="sc-grid">
+            {% for s in sessions %}
+            <div class="sc-card" data-accent="{{ s.color|default:'#e63329' }}">
+              <div class="sc-card-top">
+                <div>
+                  <div class="sc-cat">{{ s.muscle_group|upper }}</div>
+                  <div class="sc-name">{{ s.name }}</div>
+                </div>
+                <form method="POST">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="delete">
+                  <input type="hidden" name="session_id" value="{{ s.id }}">
+                  <button type="submit" class="btn-delete" title="Delete">✕</button>
+                </form>
+              </div>
+              {% if s.exercises %}
+              <p class="sc-exercises">{{ s.exercises }}</p>
+              {% endif %}
+              <div class="sc-meta">
+                {% if s.duration %}<span>⏱ {{ s.duration }} min</span>{% endif %}
+                {% if s.exercise_count %}<span>💪 {{ s.exercise_count }} exercises</span>{% endif %}
+              </div>
+              {% if s.notes %}
+              <div class="sc-notes">📝 {{ s.notes }}</div>
+              {% endif %}
+            </div>
+            {% endfor %}
+
+            <!-- Add more card -->
+            <div class="sc-card-add" onclick="openModal('{{ day }}')">
+              <div style="font-size:2rem;margin-bottom:0.5rem;">+</div>
+              <div style="font-size:0.85rem;font-weight:700;letter-spacing:1px;">ADD SESSION</div>
+            </div>
+          </div>
+        {% else %}
+          <div class="sc-empty">
+            <div style="font-size:3rem;margin-bottom:1rem;">😴</div>
+            <div style="color:#555;font-size:1rem;margin-bottom:1.5rem;">Rest day — no sessions planned</div>
+            <button class="btn-add" onclick="openModal('{{ day }}')">
+              + ADD SESSION FOR {{ day|slice:":3"|upper }}
+            </button>
+          </div>
+        {% endif %}
+        {% endwith %}
+      </div>
+      {% endfor %}
+
+    </div>
+  </div>
+</div>
+
+<!-- ═══ ADD SESSION MODAL ═══ -->
+<div id="modalBg" onclick="if(event.target===this)closeModal()"
+  style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:1000;
+         align-items:center;justify-content:center;padding:1rem;">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2 class="modal-title">ADD WORKOUT SESSION</h2>
+      <button onclick="closeModal()" class="modal-close">✕</button>
+    </div>
+
+    <form method="POST">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="add">
+
+      <div class="modal-grid2">
+        <div>
+          <label class="flabel">Day</label>
+          <select name="day" id="modalDay" class="finput">
+            {% for day in days %}
+            <option value="{{ day }}">{{ day }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="flabel">Muscle Group</label>
+          <select name="muscle_group" id="muscleSelect" class="finput" onchange="onMuscleChange(this.value)">
+            <option value="Chest">Chest</option>
+            <option value="Back">Back</option>
+            <option value="Shoulders">Shoulders</option>
+            <option value="Arms">Arms</option>
+            <option value="Legs">Legs</option>
+            <option value="Core / Abs">Core / Abs</option>
+            <option value="Full Body">Full Body</option>
+            <option value="Cardio">Cardio</option>
+            <option value="HIIT">HIIT</option>
+            <option value="Yoga">Yoga</option>
+            <option value="Rest">Rest Day</option>
+            <option value="Custom">Custom</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="modal-field">
+        <label class="flabel">Session Name</label>
+        <input type="text" name="name" class="finput"
+          placeholder="e.g. Push Day, Leg Power, Morning Cardio" required>
+      </div>
+
+      <div class="modal-field">
+        <label class="flabel">Exercises</label>
+        <input type="text" name="exercises" id="exerciseInput" class="finput"
+          placeholder="e.g. Bench Press, Incline Press, Cable Flyes">
+        <div id="suggBox" class="sugg-box"></div>
+      </div>
+
+      <div class="modal-grid2">
+        <div>
+          <label class="flabel">Duration (min)</label>
+          <input type="number" name="duration" class="finput" placeholder="e.g. 60" min="5" max="300">
+        </div>
+        <div>
+          <label class="flabel">Exercise Count</label>
+          <input type="number" name="exercise_count" class="finput" placeholder="e.g. 4" min="1" max="30">
+        </div>
+      </div>
+
+      <div class="modal-field">
+        <label class="flabel">Notes (optional)</label>
+        <input type="text" name="notes" class="finput"
+          placeholder="e.g. Focus on progressive overload">
+      </div>
+
+      <div style="display:flex;gap:1rem;margin-top:1.5rem;">
+        <button type="submit" class="btn-add" style="flex:1;padding:0.9rem;font-size:0.9rem;">✓ SAVE SESSION</button>
+        <button type="button" onclick="closeModal()"
+          style="flex:1;padding:0.9rem;background:transparent;border:1px solid #333;
+                 color:#888;border-radius:4px;cursor:pointer;font-weight:700;font-size:0.9rem;">
+          CANCEL
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<style>
+nav, footer { display:none !important; }
+
+.dashboard-layout { display:flex;min-height:100vh;background:#0a0a0a;position:absolute;top:0;left:0;right:0;bottom:0; }
+
+.sidebar { width:260px;background:#111;border-right:1px solid #1a1a1a;display:flex;flex-direction:column;padding:30px 20px;position:fixed;top:0;bottom:0;left:0;z-index:10;overflow-y:auto; }
+.sidebar-logo { font-family:'Bebas Neue',sans-serif;font-size:2rem;letter-spacing:3px;color:#fff;margin-bottom:40px;padding-left:10px; }
+.sidebar-logo span { color:#e63329; }
+.sidebar-menu { list-style:none;display:flex;flex-direction:column;gap:4px;padding:0;margin:0;flex:1; }
+.sidebar-menu li a { display:flex;align-items:center;gap:15px;color:#aaa;text-decoration:none;font-weight:600;font-size:0.85rem;padding:12px 18px;border-radius:4px;text-transform:uppercase;letter-spacing:1px;transition:all 0.2s;border-left:4px solid transparent; }
+.sidebar-menu li a:hover { color:#fff;background:#1a1a1a; }
+.sidebar-menu li a.active { color:#fff;background:#141414;border-left-color:#e63329;padding-left:14px; }
+.icon { font-size:1.1rem; }
+
+.sidebar-member { display:flex;align-items:center;gap:12px;margin-top:20px;padding-top:20px;border-top:1px solid #1a1a1a; }
+.member-avatar { width:38px;height:38px;border-radius:50%;background:#e63329;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1rem;color:#fff;flex-shrink:0; }
+.member-name { font-size:0.82rem;color:#fff;font-weight:600; }
+.member-plan { font-size:0.72rem;color:#666;text-transform:uppercase;letter-spacing:1px; }
+
+.main-content-area { flex:1;margin-left:260px;padding:40px;background:#0a0a0a;min-height:100vh;box-sizing:border-box;overflow-y:auto; }
+.schedule-page { max-width:1100px;margin:0 auto; }
+
+/* Header */
+.sc-header { display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:2rem;flex-wrap:wrap;gap:1rem; }
+.sc-title { font-family:'Bebas Neue',sans-serif;font-size:2.8rem;letter-spacing:2px;margin:0;color:#fff; }
+.sc-sub { color:#666;font-size:0.9rem;margin:0.3rem 0 0; }
+.sc-week-badge { background:#1a1a1a;border:1px solid #2a2a2a;border-radius:6px;padding:0.5rem 1rem;font-size:0.75rem;font-weight:700;letter-spacing:0.1em;color:#888; }
+.btn-add { background:#e63329;color:#fff;border:none;padding:0.7rem 1.5rem;border-radius:4px;font-weight:800;cursor:pointer;letter-spacing:1px;font-size:0.85rem;transition:background 0.2s; }
+.btn-add:hover { background:#c53030; }
+
+/* Day tabs */
+.sc-days { display:flex;gap:4px;background:#111;border-radius:10px;padding:4px;margin-bottom:1.75rem; }
+.sc-day { flex:1;padding:0.6rem;background:transparent;border:none;border-radius:7px;color:#666;font-family:'Barlow',sans-serif;font-size:0.8rem;font-weight:700;letter-spacing:0.08em;cursor:pointer;transition:all 0.2s; }
+.sc-day:hover { color:#fff;background:#1a1a1a; }
+.sc-day.active { background:#e63329;color:#fff; }
+
+/* Panels */
+.sc-panel { display:none; }
+.sc-panel.active { display:block; }
+
+/* Cards */
+.sc-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1rem; }
+.sc-card { background:#141414;border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:1.5rem;border-top:3px solid #333;transition:transform 0.2s; }
+.sc-card:hover { transform:translateY(-3px); }
+.sc-card-top { display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:0.8rem; }
+.sc-cat { font-size:0.65rem;font-weight:900;letter-spacing:0.12em;margin-bottom:0.4rem; }
+.sc-name { font-family:'Bebas Neue',sans-serif;font-size:1.4rem;letter-spacing:1px;color:#fff;margin:0;line-height:1.1; }
+.sc-exercises { font-size:0.82rem;color:#888;margin:0 0 0.75rem;line-height:1.5; }
+.sc-meta { display:flex;gap:1rem;font-size:0.75rem;color:#555; }
+.sc-notes { font-size:0.78rem;color:#666;font-style:italic;margin-top:0.5rem;padding-top:0.5rem;border-top:1px solid #1a1a1a; }
+.btn-delete { background:transparent;border:1px solid #2a2a2a;color:#555;width:28px;height:28px;border-radius:4px;cursor:pointer;font-size:0.8rem;flex-shrink:0;transition:all 0.2s;display:flex;align-items:center;justify-content:center; }
+.btn-delete:hover { background:#3a1a1a;border-color:#e53e3e;color:#e53e3e; }
+
+/* Add card */
+.sc-card-add { background:transparent;border:1px dashed #2a2a2a;border-radius:10px;padding:1.5rem;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;color:#444;min-height:120px;transition:all 0.2s;font-weight:700;letter-spacing:1px; }
+.sc-card-add:hover { border-color:#e63329;color:#e63329;background:#1a0000; }
+
+/* Empty */
+.sc-empty { text-align:center;padding:4rem 2rem;background:#0e0e0e;border:1px dashed #1a1a1a;border-radius:10px; }
+
+/* Modal */
+.modal-box { background:#111;border:1px solid #2a2a2a;border-radius:8px;padding:2rem;width:100%;max-width:520px;max-height:90vh;overflow-y:auto; }
+.modal-header { display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem; }
+.modal-title { font-family:'Bebas Neue',sans-serif;font-size:1.6rem;letter-spacing:2px;margin:0;color:#fff; }
+.modal-close { background:transparent;border:none;color:#888;font-size:1.5rem;cursor:pointer; }
+.modal-grid2 { display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem; }
+.modal-field { margin-bottom:1rem; }
+.flabel { display:block;font-size:0.72rem;color:#888;letter-spacing:1px;margin-bottom:0.4rem;text-transform:uppercase;font-weight:600; }
+.finput { width:100%;background:#1a1a1a;border:1px solid #252525;color:#fff;padding:0.7rem 1rem;border-radius:4px;font-size:0.9rem;box-sizing:border-box;outline:none; }
+.finput:focus { border-color:#e63329; }
+.finput option { background:#1a1a1a; }
+
+/* Suggestions */
+.sugg-box { margin-top:0.5rem; }
+.sugg-label { font-size:0.68rem;color:#555;letter-spacing:1px;margin-bottom:0.4rem; }
+.sugg-chip { display:inline-block;background:#1a1a1a;border:1px solid #252525;color:#888;padding:3px 10px;border-radius:3px;font-size:0.78rem;cursor:pointer;margin:2px;transition:all 0.15s; }
+.sugg-chip:hover { border-color:#e63329;color:#fff; }
+
+@media(max-width:768px) {
+  .sidebar { width:70px;padding:20px 10px; }
+  .sidebar-logo,.sidebar-menu li a span:not(.icon),.member-info { display:none; }
+  .main-content-area { margin-left:70px;padding:20px; }
+  .sc-days { flex-wrap:wrap; }
+  .modal-grid2 { grid-template-columns:1fr; }
+}
+</style>
+
+<script>
+const SUGGESTIONS = {
+  'Chest':      ['Barbell Bench Press','Incline DB Press','Cable Flyes','Push-ups','Chest Dips','Pec Deck'],
+  'Back':       ['Pull-ups','Barbell Rows','Lat Pulldown','Seated Cable Row','Deadlift','Face Pulls'],
+  'Shoulders':  ['Overhead Press','Lateral Raise','Front Raise','Rear Delt Fly','Barbell Shrugs','Arnold Press'],
+  'Arms':       ['Barbell Curl','Hammer Curl','Tricep Pushdown','Skull Crushers','Preacher Curl','Dips'],
+  'Legs':       ['Barbell Squat','Romanian Deadlift','Leg Press','Lunges','Leg Curl','Calf Raises'],
+  'Core / Abs': ['Plank','Crunches','Leg Raises','Russian Twist','Cable Crunch','Ab Wheel'],
+  'Full Body':  ['Deadlift','Clean & Press','Burpees','Kettlebell Swing','Thrusters','Pull-ups'],
+  'Cardio':     ['Treadmill Run','Cycling','Rowing Machine','Jump Rope','Stair Climber','Elliptical'],
+  'HIIT':       ['Box Jumps','Sprint Intervals','Battle Ropes','Mountain Climbers','Burpees','Jumping Jacks'],
+  'Yoga':       ['Sun Salutation','Warrior Flow','Pigeon Pose','Child\'s Pose','Downward Dog','Cobra Pose'],
+  'Rest':       ['Light Walk','Stretching','Foam Rolling','Meditation'],
+};
+
+function switchDay(day, btn) {
+  document.querySelectorAll('.sc-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.sc-day').forEach(b => b.classList.remove('active'));
+  document.getElementById('panel-' + day).classList.add('active');
+  btn.classList.add('active');
+}
+
+function openModal(day) {
+  const bg = document.getElementById('modalBg');
+  bg.style.display = 'flex';
+  if (day) document.getElementById('modalDay').value = day;
+  onMuscleChange(document.getElementById('muscleSelect').value);
+}
+
+function closeModal() {
+  document.getElementById('modalBg').style.display = 'none';
+}
+
+function onMuscleChange(muscle) {
+  const suggs = SUGGESTIONS[muscle] || [];
+  const box = document.getElementById('suggBox');
+  if (!suggs.length) { box.innerHTML = ''; return; }
+  box.innerHTML =
+    '<div class="sugg-label">SUGGESTED — click to add:</div>' +
+    suggs.map(s =>
+      `<span class="sugg-chip" onclick="addEx('${s.replace(/'/g,"\\'")}')"> ${s}</span>`
+    ).join('');
+}
+
+function addEx(name) {
+  const inp = document.getElementById('exerciseInput');
+  const cur = inp.value.trim();
+  inp.value = cur ? (cur.includes(name) ? cur : cur + ', ' + name) : name;
+}
+
+function applyCardColors() {
+  document.querySelectorAll('.sc-card[data-accent]').forEach(card => {
+    const accent = card.dataset.accent || '#e63329';
+    card.style.borderTopColor = accent;
+    const label = card.querySelector('.sc-cat');
+    if (label) label.style.color = accent;
+  });
+}
+
+// Init
+onMuscleChange('Chest');
+applyCardColors();
+</script>
+{% endblock %}

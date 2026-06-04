@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<section style="padding: 160px 10% 80px 10%; background: #0a0a0a; color: white; min-height: 80vh;">
+    
+    <a href="{% url 'services' %}" style="color: #aaa; text-decoration: none; font-size: 0.85rem; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; display: inline-flex; align-items: center; gap: 8px; margin-bottom: 40px; transition: color 0.3s;" onmouseover="this.style.color='white'" onmouseout="this.style.color='#aaa'">
+        ← Back to All Services
+    </a>
+
+    <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 60px; align-items: start;">
+        
+        <div>
+            <span style="color: #e63329; text-transform: uppercase; letter-spacing: 2px; font-size: 0.9rem; font-weight: 700;">Program Deep-Dive</span>
+            <h1 style="font-family: 'Bebas Neue', sans-serif; font-size: 4.5rem; margin: 10px 0 25px 0; letter-spacing: 1px; line-height: 1;">
+                {{ service.icon }} {{ service.title }}
+            </h1>
+            <p style="font-size: 1.1rem; color: #ccc; line-height: 1.8; margin-bottom: 40px; font-weight: 300;">
+                {{ service.full_info }}
+            </p>
+            
+            <a href="{% url 'contact' %}" style="background: #e63329; color: white; text-decoration: none; padding: 15px 35px; font-family: 'Bebas Neue', sans-serif; font-size: 1.2rem; letter-spacing: 1px; text-transform: uppercase; display: inline-block; transition: background 0.3s;" onmouseover="this.style.background='#ff443a'" onmouseout="this.style.background='#e63329'">
+                Book an Orientation
+            </a>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 30px;">
+            
+            <div style="background: #141414; padding: 35px; border-left: 4px solid #e63329; border-top: 1px solid #222; border-right: 1px solid #222; border-bottom: 1px solid #222;">
+                <h3 style="font-family: 'Bebas Neue', sans-serif; font-size: 1.6rem; letter-spacing: 1px; margin-bottom: 20px; color: white;">
+                    KEY BENEFITS
+                </h3>
+                <ul style="list-style: none; padding: 0; margin: 0 0 30px 0;">
+                    {% for benefit in service.benefits %}
+                    <li style="font-size: 0.95rem; color: #aaa; margin-bottom: 12px; display: flex; align-items: center; gap: 12px;">
+                        <span style="color: #e63329; font-weight: bold;">✓</span> {{ benefit }}
+                    </li>
+                    {% endfor %}
+                </ul>
+
+                <h3 style="font-family: 'Bebas Neue', sans-serif; font-size: 1.6rem; letter-spacing: 1px; margin-bottom: 10px; color: white;">
+                    WEEKLY SCHEDULE
+                </h3>
+                <p style="font-size: 1rem; color: #e63329; font-weight: 600; margin: 0;">
+                    📅 {{ service.schedule }}
+                </p>
+            </div>
+
+            <div style="background: #111; padding: 30px; border: 1px solid #222;">
+                <h3 style="font-family: 'Bebas Neue', sans-serif; font-size: 1.5rem; letter-spacing: 1px; margin-bottom: 15px; color: #888;">
+                    EXPLORE OTHER SERVICES
+                </h3>
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                    {% for slug, item in services.items %}
+                        {% if item.title == service.title %}
+                            <div style="background: #1a1a1a; padding: 12px 20px; border: 1px solid #e63329; color: white; font-weight: bold; display: flex; justify-content: space-between; align-items: center;">
+                                <span>{{ item.icon }} {{ item.title }}</span>
+                                <span style="font-size: 0.75rem; background: #e63329; padding: 2px 6px; text-transform: uppercase;">Viewing</span>
+                            </div>
+                        {% else %}
+                            <a href="{% url 'service_detail' slug %}" style="text-decoration: none; color: #bbb; display: block;">
+                                <div style="background: #141414; padding: 12px 20px; border: 1px solid #222; transition: all 0.2s;" onmouseover="this.style.background='#1c1c1c'; this.style.borderColor='#444'; this.style.color='white';" onmouseout="this.style.background='#141414'; this.style.borderColor='#222'; this.style.color='#bbb';">
+                                    {{ item.icon }} {{ item.title }} →
+                                </div>
+                            </a>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+</section>
+{% endblock content %}

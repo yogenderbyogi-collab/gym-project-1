@@ -1,0 +1,22 @@
+{% extends 'dashboard.html' %}
+
+{% block dashboard_content %}
+<div class="main">
+    <div class="page-header">
+        <h1>Nutrition <span>Tracker</span></h1>
+        <p>Fuel your muscles with deliberate tracking.</p>
+    </div>
+
+    <div class="card">
+        <div class="card-title">🥗 <span>Meal Logs</span></div>
+        {% for log in nutrition_logs %}
+            <div class="info-row">
+                <span class="info-label">{{ log.meal_name }}</span>
+                <span class="info-value">{{ log.calories }} kcal | {{ log.protein }}g Protein</span>
+            </div>
+        {% empty %}
+            <p style="color: #666; font-size: 0.9rem;">No meals logged today. Keep eating clean!</p>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

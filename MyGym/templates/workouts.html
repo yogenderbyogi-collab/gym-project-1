@@ -1,0 +1,160 @@
+{% extends 'dashboard.html' %}
+
+{% block dashboard_content %}
+<div style="padding: 2rem; margin-left: 260px;">
+    <div class="page-header">
+        <h1>My <span>Workouts</span></h1>
+        <p>Select a muscle group split to view targeted exercise variations and proper form animations.</p>
+    </div>
+
+    <div class="filter-container">
+        <button class="filter-btn active" onclick="filterCategory('all', event)">All Workouts</button>
+        <button class="filter-btn" onclick="filterCategory('chest', event)">Chest</button>
+        <button class="filter-btn" onclick="filterCategory('back', event)">Back</button>
+        <button class="filter-btn" onclick="filterCategory('shoulders', event)">Shoulders</button>
+        <button class="filter-btn" onclick="filterCategory('legs', event)">Legs</button>
+        <button class="filter-btn" onclick="filterCategory('abs', event)">Abs</button>
+    </div>
+
+    <div class="workout-grid" id="workoutGrid">
+    {% for workout in workouts %}
+        <div class="workout-card-item" data-category="{{ workout.category }}">
+            <div class="card-inner">
+                <div class="gif-container">
+                    <img src="{{ workout.image_url }}" alt="{{ workout.title }}" class="workout-gif">
+                </div>
+                <div class="card-details">
+                    <span class="workout-tag">{{ workout.get_category_display }}</span>
+                    <h3>{{ workout.title }}</h3>
+                    <p class="workout-desc">{{ workout.exercises|linebreaksbr }}</p>
+                    <form method="POST" action="{% url 'workouts' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="workout_id" value="{{ workout.id }}">
+                        {% if workout.id in logged_ids %}
+                            <button type="submit" class="done-btn done-btn-logged">&#10003; DONE TODAY</button>
+                        {% else %}
+                            <button type="submit" class="done-btn">MARK AS DONE</button>
+                        {% endif %}
+                    </form>
+                </div>
+            </div>
+        </div>
+    {% empty %}
+        <div style="grid-column:1/-1;text-align:center;padding:40px;color:#666;">
+            <p>No workout variations loaded. Run your data seed script to populate the grid!</p>
+        </div>
+    {% endfor %}
+    </div>
+</div>
+
+<style>
+    .filter-container {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 30px;
+        flex-wrap: wrap;
+    }
+    .filter-btn {
+        background: #141414;
+        border: 1px solid rgba(255,255,255,0.08);
+        color: #888;
+        padding: 10px 20px;
+        font-family: 'Barlow', sans-serif;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        font-size: 0.8rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    .filter-btn:hover, .filter-btn.active {
+        background: #e63329;
+        color: white;
+        border-color: #e63329;
+        box-shadow: 0 4px 12px rgba(230,51,41,0.2);
+    }
+    .workout-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 24px;
+    }
+    .workout-card-item {
+        background: #141414;
+        border: 1px solid rgba(255,255,255,0.06);
+        border-radius: 4px;
+        overflow: hidden;
+        transition: transform 0.3s ease, border-color 0.3s ease;
+    }
+    .workout-card-item:hover {
+        transform: translateY(-4px);
+        border-color: rgba(230,51,41,0.4);
+    }
+    .gif-container {
+        width: 100%;
+        height: 220px;
+        background: #1a1a1a;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+    .workout-gif {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    .card-details {
+        padding: 20px;
+    }
+    .workout-tag {
+        color: #e63329;
+        font-size: 0.7rem;
+        font-weight: 700;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        display: block;
+        margin-bottom: 6px;
+    }
+    .card-details h3 {
+        font-family: 'Bebas Neue', sans-serif;
+        font-size: 1.6rem;
+        letter-spacing: 1px;
+        margin-bottom: 12px;
+        color: white;
+    }
+    .workout-desc {
+        color: #aaa;
+        font-size: 0.85rem;
+        line-height: 1.6;
+    }
+    .done-btn {
+        margin-top: 12px;
+        width: 100%;
+        padding: 10px;
+        background: transparent;
+        border: 1px solid #e63329;
+        color: #e63329;
+        font-family: 'Barlow', sans-serif;
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .done-btn:hover { background: #e63329; color: #fff; }
+    .done-btn-logged { background: rgba(56,161,105,0.12); border-color: #38a169; color: #68d391; }
+    .done-btn-logged:hover { background: #38a169; color: #fff; }
+</style>
+
+<script>
+    function filterCategory(category, event) {
+        document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+        if (event && event.currentTarget) event.currentTarget.classList.add('active');
+        document.querySelectorAll('.workout-card-item').forEach(card => {
+            card.style.display = (category === 'all' || card.getAttribute('data-category') === category) ? 'block' : 'none';
+        });
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,166 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="dashboard-layout">
+  <div class="sidebar">
+    <div class="sidebar-logo">My<span>Gym</span></div>
+    <ul class="sidebar-menu">
+      <li><a href="{% url 'dashboard' %}"><span class="icon">📊</span> Dashboard</a></li>
+      <li><a href="{% url 'home' %}"><span class="icon">🏠</span> Home</a></li>
+      <li><a href="{% url 'workouts' %}"><span class="icon">🏋️</span> My Workouts</a></li>
+      <li><a href="{% url 'schedule' %}"><span class="icon">📅</span> Schedule</a></li>
+      <li><a href="{% url 'body_stats' %}" class="active"><span class="icon">📈</span> Body Stats</a></li>
+      <li><a href="{% url 'nutrition_ai' %}"><span class="icon">🥗</span> Nutrition</a></li>
+      <li><a href="{% url 'membership_qr' %}"><span class="icon">📱</span> Membership QR</a></li>
+      <li><a href="{% url 'settings' %}"><span class="icon">⚙️</span> Settings</a></li>
+    </ul>
+  </div>
+  <div class="main-content-area">
+    <div style="max-width:1000px;margin:0 auto;">
+      <div class="page-header">
+        <h1>BODY <span style="color:#e53e3e;">STATS</span></h1>
+        <p>Track your weight, body fat % and BMI over time</p>
+      </div>
+
+      <div style="background:#111;border:1px solid #1a1a1a;border-radius:4px;padding:2rem;margin-bottom:1.5rem;">
+        <h2 style="font-family:'Bebas Neue',sans-serif;font-size:1.4rem;letter-spacing:2px;color:#fff;margin:0 0 1.4rem;border-bottom:1px solid #222;padding-bottom:0.8rem;">LOG TODAY'S STATS</h2>
+        <form method="POST">
+          {% csrf_token %}
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1rem;">
+            <div>
+              <label style="display:block;font-size:0.72rem;color:#888;letter-spacing:1px;margin-bottom:0.5rem;text-transform:uppercase;">Weight (kg)</label>
+              <input type="number" name="weight" step="0.1" placeholder="e.g. 75.5" required
+                style="width:100%;background:#1a1a1a;border:1px solid #252525;color:#fff;padding:0.75rem 1rem;border-radius:4px;font-size:0.9rem;box-sizing:border-box;outline:none;">
+            </div>
+            <div>
+              <label style="display:block;font-size:0.72rem;color:#888;letter-spacing:1px;margin-bottom:0.5rem;text-transform:uppercase;">Body Fat %</label>
+              <input type="number" name="body_fat" step="0.1" placeholder="e.g. 18.5"
+                style="width:100%;background:#1a1a1a;border:1px solid #252525;color:#fff;padding:0.75rem 1rem;border-radius:4px;font-size:0.9rem;box-sizing:border-box;outline:none;">
+            </div>
+            <div>
+              <label style="display:block;font-size:0.72rem;color:#888;letter-spacing:1px;margin-bottom:0.5rem;text-transform:uppercase;">Height (cm) for BMI</label>
+              <input type="number" name="height" placeholder="e.g. 175"
+                style="width:100%;background:#1a1a1a;border:1px solid #252525;color:#fff;padding:0.75rem 1rem;border-radius:4px;font-size:0.9rem;box-sizing:border-box;outline:none;">
+            </div>
+          </div>
+          <button type="submit"
+            style="background:#e53e3e;color:#fff;border:none;padding:0.9rem 2rem;font-weight:800;letter-spacing:2px;border-radius:4px;cursor:pointer;font-size:0.9rem;">
+            + LOG STATS
+          </button>
+        </form>
+      </div>
+
+      {% if stats %}
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1.5rem;">
+        <div style="background:#111;border:1px solid #1a1a1a;border-radius:4px;padding:1.5rem;text-align:center;">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:1rem;color:#888;letter-spacing:2px;margin-bottom:0.4rem;">CURRENT WEIGHT</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:2.8rem;color:#e53e3e;">{{ stats.0.weight }}</div>
+          <div style="font-size:0.75rem;color:#555;text-transform:uppercase;letter-spacing:1px;">kg</div>
+        </div>
+        <div style="background:#111;border:1px solid #1a1a1a;border-radius:4px;padding:1.5rem;text-align:center;">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:1rem;color:#888;letter-spacing:2px;margin-bottom:0.4rem;">BODY FAT</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:2.8rem;color:#4299e1;">{{ stats.0.body_fat|default:"--" }}</div>
+          <div style="font-size:0.75rem;color:#555;text-transform:uppercase;letter-spacing:1px;">%</div>
+        </div>
+        <div style="background:#111;border:1px solid #1a1a1a;border-radius:4px;padding:1.5rem;text-align:center;">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:1rem;color:#888;letter-spacing:2px;margin-bottom:0.4rem;">BMI</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:2.8rem;color:#48bb78;">{{ stats.0.bmi|default:"--" }}</div>
+          <div style="font-size:0.75rem;color:#555;text-transform:uppercase;letter-spacing:1px;">score</div>
+        </div>
+      </div>
+
+      <div style="background:#111;border:1px solid #1a1a1a;border-radius:4px;padding:2rem;margin-bottom:1.5rem;">
+        <h2 style="font-family:'Bebas Neue',sans-serif;font-size:1.4rem;letter-spacing:2px;color:#fff;margin:0 0 1.4rem;border-bottom:1px solid #222;padding-bottom:0.8rem;">WEIGHT TREND</h2>
+        <div style="position:relative;height:300px;">
+          <canvas id="weightChart" role="img" aria-label="Weight trend over time"></canvas>
+        </div>
+      </div>
+
+      <div style="background:#111;border:1px solid #1a1a1a;border-radius:4px;padding:2rem;">
+        <h2 style="font-family:'Bebas Neue',sans-serif;font-size:1.4rem;letter-spacing:2px;color:#fff;margin:0 0 1.4rem;border-bottom:1px solid #222;padding-bottom:0.8rem;">HISTORY</h2>
+        <table style="width:100%;border-collapse:collapse;font-size:0.9rem;">
+          <thead>
+            <tr>
+              <th style="text-align:left;color:#888;font-size:0.72rem;letter-spacing:1px;padding:0.5rem 0.8rem;border-bottom:1px solid #222;">DATE</th>
+              <th style="text-align:left;color:#888;font-size:0.72rem;letter-spacing:1px;padding:0.5rem 0.8rem;border-bottom:1px solid #222;">WEIGHT</th>
+              <th style="text-align:left;color:#888;font-size:0.72rem;letter-spacing:1px;padding:0.5rem 0.8rem;border-bottom:1px solid #222;">BODY FAT %</th>
+              <th style="text-align:left;color:#888;font-size:0.72rem;letter-spacing:1px;padding:0.5rem 0.8rem;border-bottom:1px solid #222;">BMI</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for s in stats %}
+            <tr>
+              <td style="padding:0.7rem 0.8rem;border-bottom:1px solid #1a1a1a;color:#aaa;">{{ s.date }}</td>
+              <td style="padding:0.7rem 0.8rem;border-bottom:1px solid #1a1a1a;color:#fff;font-weight:600;">{{ s.weight }} kg</td>
+              <td style="padding:0.7rem 0.8rem;border-bottom:1px solid #1a1a1a;color:#4299e1;">{{ s.body_fat|default:"--" }}%</td>
+              <td style="padding:0.7rem 0.8rem;border-bottom:1px solid #1a1a1a;color:#48bb78;">{{ s.bmi|default:"--" }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div style="background:#111;border:1px solid #1a1a1a;border-radius:4px;padding:4rem;text-align:center;color:#555;">
+        No stats logged yet. Log your first entry above!
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<style>
+nav, footer { display: none !important; }
+.dashboard-layout { display:flex;min-height:100vh;background:#0a0a0a;position:absolute;top:0;left:0;right:0;bottom:0; }
+.sidebar { width:260px;background:#111111;border-right:1px solid #1a1a1a;display:flex;flex-direction:column;padding:30px 20px;position:fixed;top:0;bottom:0;left:0;z-index:10; }
+.sidebar-logo { font-family:'Bebas Neue',sans-serif;font-size:2rem;letter-spacing:3px;color:#fff;margin-bottom:40px;padding-left:10px; }
+.sidebar-logo span { color:#e63329; }
+.sidebar-menu { list-style:none;display:flex;flex-direction:column;gap:10px;padding:0;margin:0; }
+.sidebar-menu li a { display:flex;align-items:center;gap:15px;color:#aaa;text-decoration:none;font-weight:600;font-size:0.85rem;padding:14px 18px;border-radius:4px;text-transform:uppercase;letter-spacing:1px;transition:all 0.3s; }
+.sidebar-menu li a:hover, .sidebar-menu li a.active { color:#fff;background:#1a1a1a; }
+.sidebar-menu li a.active { border-left:4px solid #e63329;background:#141414;padding-left:14px; }
+.main-content-area { flex:1;margin-left:260px;padding:40px;background:#0a0a0a;min-height:100vh;box-sizing:border-box;overflow-y:auto; }
+.page-header { margin-bottom:2rem; }
+.page-header h1 { font-family:'Bebas Neue',sans-serif;font-size:3rem;font-weight:900;letter-spacing:2px;margin:0; }
+.page-header p { color:#aaa;margin-top:0.3rem;font-size:0.95rem; }
+</style>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+{% if stats %}
+<script id="body-stats-data" type="application/json">
+[ {% for s in stats %}{"date":"{{ s.date|escapejs }}","weight":{{ s.weight }}}{% if not forloop.last %},{% endif %}{% endfor %} ]
+</script>
+{% endif %}
+<script>
+const statsDataElement = document.getElementById('body-stats-data');
+if (statsDataElement) {
+  const statsData = JSON.parse(statsDataElement.textContent);
+  const labels = statsData.map(entry => entry.date).reverse();
+  const weights = statsData.map(entry => entry.weight).reverse();
+  new Chart(document.getElementById('weightChart'), {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Weight (kg)',
+        data: weights,
+        borderColor: '#e53e3e',
+        backgroundColor: 'rgba(229,62,62,0.1)',
+        borderWidth: 2,
+        pointBackgroundColor: '#e53e3e',
+        pointRadius: 5,
+        fill: true,
+        tension: 0.3
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: '#888' }, grid: { color: '#1a1a1a' } },
+        y: { ticks: { color: '#888' }, grid: { color: '#1a1a1a' } }
+      }
+    }
+  });
+}
+</script>
+{% endblock %}

@@ -1,0 +1,33 @@
+from django.urls import path
+from . import views
+
+urlpatterns = [
+    path('', views.home, name='home'),
+    path('home/', views.home, name='home_page'),
+    path('login/', views.login_view, name='login'),
+    path('signup/', views.signup_view, name='signup'),
+    path('logout/', views.logout_view, name='logout'),
+    path('dashboard/', views.dashboard, name='dashboard'),
+    path('services/', views.services_view, name='services'),
+    path('services/<str:service_slug>/', views.service_detail_view, name='service_detail'),
+    path('support/', views.support_view, name='support'),
+    path('contact/', views.contact_view, name='contact'),
+    path('workouts/', views.workouts_view, name='workouts'),
+    path('schedule/', views.schedule_view, name='schedule'),
+    path('nutrition/', views.nutrition_view, name='nutrition'),
+    path('nutrition/ai/', views.nutrition_ai, name='nutrition_ai'),
+    path('nutrition/ai-chat/', views.nutrition_ai_chat, name='nutrition_ai_chat'),
+    path('settings/', views.settings_view, name='settings'),
+    path('body-stats/', views.body_stats_view, name='body_stats'),
+    path('membership-qr/', views.membership_qr_view, name='membership_qr'),
+    path('membership-qr/download/', views.download_qr_view, name='download_qr'),
+    path('notifications/', views.notifications_view, name='notifications'),
+    path('notifications/count/', views.notifications_count, name='notifications_count'),
+    path('food-search/', views.food_search, name='food_search'),
+    path('export/workout-pdf/', views.export_workout_pdf, name='export_workout_pdf'),
+    path('email-report/', views.send_email_report, name='send_email_report'),
+    path('api/profile/', views.api_profile, name='api_profile'),
+    path('api/workouts/', views.api_workouts, name='api_workouts'),
+    path('api/logs/', views.api_logs, name='api_logs'),
+    path('api/stats/', views.api_stats, name='api_stats'),
+]

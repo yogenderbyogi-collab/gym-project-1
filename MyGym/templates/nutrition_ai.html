@@ -1,0 +1,714 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="dashboard-layout">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-logo">My<span>Gym</span></div>
+    <ul class="sidebar-menu">
+      <li><a href="{% url 'dashboard' %}"><span class="icon">📊</span> Dashboard</a></li>
+      <li><a href="{% url 'home' %}"><span class="icon">🏠</span> Home</a></li>
+      <li><a href="{% url 'workouts' %}"><span class="icon">🏋️</span> My Workouts</a></li>
+      <li><a href="{% url 'schedule' %}"><span class="icon">📅</span> Schedule</a></li>
+      <li><a href="{% url 'body_stats' %}"><span class="icon">📈</span> Body Stats</a></li>
+      <li><a href="{% url 'nutrition_ai' %}" class="active"><span class="icon">🥗</span> Nutrition</a></li>
+      <li><a href="{% url 'membership_qr' %}"><span class="icon">🪪</span> Membership QR</a></li>
+      <li><a href="{% url 'settings' %}"><span class="icon">⚙️</span> Settings</a></li>
+    </ul>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div class="main-content-area">
+    <div class="nutrition-ai-page">
+
+      <div class="page-header">
+        <h1>MY <span style="color:#e53e3e;">NUTRITION</span> PLAN</h1>
+        <p>Get a personalized meal plan calculated for your body</p>
+      </div>
+
+      <!-- Input Form -->
+      <div class="form-card" id="inputSection">
+        <h2>CALCULATE YOUR PLAN</h2>
+
+        <!-- ════════════════════════════════════════════════════
+             ✅ FOOD SEARCH — added here, above the form-grid
+             ════════════════════════════════════════════════════ -->
+        <div class="food-search-block">
+          <label class="field-label">Quick Food Search (auto-fill macros)</label>
+          <div class="food-search-row">
+            <input type="text" id="foodSearch"
+              placeholder="Search food... e.g. chicken breast, paneer, oats"
+              class="food-search-input">
+            <button onclick="searchFood()" type="button" class="btn-food-search">
+              🔍 SEARCH
+            </button>
+          </div>
+          <div id="foodResults" class="food-results"></div>
+        </div>
+        <!-- ════════════════════════════════════════════════════ -->
+
+        <div class="form-grid">
+          <div class="field">
+            <label>Age</label>
+            <input type="number" id="age" placeholder="e.g. 20" min="13" max="80">
+          </div>
+          <div class="field">
+            <label>Gender</label>
+            <select id="gender">
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Height (cm)</label>
+            <input type="number" id="height" placeholder="e.g. 165">
+          </div>
+          <div class="field">
+            <label>Weight (kg)</label>
+            <input type="number" id="weight" placeholder="e.g. 52">
+          </div>
+          <div class="field">
+            <label>Activity Level</label>
+            <select id="activity">
+              <option value="sedentary">Sedentary (little/no exercise)</option>
+              <option value="lightly_active">Lightly Active (1-3 days/week)</option>
+              <option value="moderately_active" selected>Moderately Active (3-5 days/week)</option>
+              <option value="very_active">Very Active (6-7 days/week)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Fitness Goal</label>
+            <select id="goal">
+              <option value="maintenance">Maintenance</option>
+              <option value="muscle_gain">Muscle Gain</option>
+              <option value="fat_loss">Fat Loss</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Diet Type</label>
+            <select id="diet">
+              <option value="non_vegetarian">Non-Vegetarian</option>
+              <option value="vegetarian">Vegetarian</option>
+              <option value="vegan">Vegan</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Cuisine Preference</label>
+            <select id="cuisine">
+              <option value="indian">Indian</option>
+              <option value="international">International</option>
+              <option value="mixed">Mixed</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn-generate" id="generateBtn" onclick="generatePlan()">
+          ⚡ GENERATE MY NUTRITION PLAN
+        </button>
+      </div>
+
+      <!-- Error Box -->
+      <div id="errorBox" style="display:none; background:#1a0000; border:1px solid #e53e3e; border-radius:4px; padding:1rem 1.5rem; margin-bottom:1.5rem; color:#ff6b6b; font-size:0.9rem;"></div>
+
+      <!-- Loading -->
+      <div class="loading-card" id="loadingCard" style="display:none;">
+        <div class="loader-ring"></div>
+        <p id="loadingMsg">Calculating your personalized plan...</p>
+      </div>
+
+      <!-- Results -->
+      <div id="resultsSection" style="display:none;">
+
+        <div class="macro-row" id="macroRow"></div>
+
+        <div class="plan-card">
+          <div class="plan-header">
+            <h2>YOUR PERSONALIZED MEAL PLAN</h2>
+            <button class="btn-save" onclick="savePlan()">💾 SAVE PLAN</button>
+          </div>
+          <div id="mealPlanOutput" class="meal-plan-content"></div>
+        </div>
+
+        <div class="chat-card">
+          <h2>ASK THE NUTRITION AI</h2>
+          <div id="chatHistory" class="chat-history"></div>
+          <div class="chat-input-row">
+            <input type="text" id="chatInput"
+              placeholder="e.g. Give me a grocery list... What if I am lactose intolerant?..."
+              onkeydown="if(event.key==='Enter') sendChat()">
+            <button class="btn-send" onclick="sendChat()">SEND</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+nav, footer { display: none !important; }
+
+html, body {
+  margin: 0; padding: 0;
+  width: 100%; height: 100%;
+  background: #0a0a0a !important;
+  color: #fff;
+  overflow: hidden;
+}
+.dashboard-layout {
+  display: flex;
+  width: 100vw;
+  height: 100vh;
+  background: #0a0a0a;
+  overflow: hidden;
+}
+
+/* ── Sidebar ── */
+.sidebar {
+  width: 260px; min-width: 260px; max-width: 260px;
+  height: 100vh; background: #111111;
+  border-right: 1px solid #1a1a1a;
+  display: flex; flex-direction: column;
+  padding: 30px 20px; box-sizing: border-box;
+  overflow-y: auto; flex-shrink: 0;
+}
+.sidebar-logo { font-family: 'Bebas Neue', sans-serif; font-size: 2rem; letter-spacing: 3px; color: #fff; margin-bottom: 40px; padding-left: 10px; }
+.sidebar-logo span { color: #e63329; }
+.sidebar-menu { list-style: none; display: flex; flex-direction: column; gap: 4px; padding: 0; margin: 0; }
+.sidebar-menu li a { display: flex; align-items: center; gap: 15px; color: #aaa; text-decoration: none; font-weight: 600; font-size: 0.85rem; padding: 14px 18px; border-radius: 4px; text-transform: uppercase; letter-spacing: 1px; transition: all 0.2s ease; border-left: 4px solid transparent; }
+.sidebar-menu li a:hover { color: #fff; background: #1a1a1a; }
+.sidebar-menu li a.active { color: #fff; background: #141414; border-left: 4px solid #e63329; padding-left: 14px; }
+.icon { font-size: 1.1rem; }
+
+/* ── Main content ── */
+.main-content-area { flex: 1; height: 100vh; overflow-y: auto; padding: 40px; background: #0a0a0a; box-sizing: border-box; }
+.nutrition-ai-page { max-width: 1100px; margin: 0 auto; }
+.page-header { margin-bottom: 2rem; }
+.page-header h1 { font-family: 'Bebas Neue', sans-serif; font-size: 3rem; font-weight: 900; letter-spacing: 2px; margin: 0; }
+.page-header p { color: #aaa; margin-top: 0.3rem; font-size: 0.95rem; }
+
+.form-card, .plan-card, .chat-card { background: #111; border: 1px solid #1a1a1a; border-radius: 4px; padding: 2rem; margin-bottom: 1.5rem; }
+.form-card h2, .plan-card h2, .chat-card h2 { font-family: 'Bebas Neue', sans-serif; font-size: 1.4rem; letter-spacing: 2px; color: #fff; margin-bottom: 1.4rem; margin-top: 0; border-bottom: 1px solid #222; padding-bottom: 0.8rem; }
+
+/* ── Food Search block ── */
+.food-search-block {
+  margin-bottom: 1.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid #222;
+}
+.field-label {
+  display: block;
+  font-size: 0.72rem;
+  color: #888;
+  letter-spacing: 1px;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+.food-search-row { display: flex; gap: 0.8rem; }
+.food-search-input {
+  flex: 1;
+  background: #1a1a1a;
+  border: 1px solid #252525;
+  color: #fff;
+  padding: 0.75rem 1rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  outline: none;
+}
+.food-search-input:focus { border-color: #e53e3e; }
+.btn-food-search {
+  background: #333;
+  color: #fff;
+  border: 1px solid #444;
+  padding: 0.75rem 1.5rem;
+  border-radius: 4px;
+  font-weight: 700;
+  cursor: pointer;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  transition: background 0.2s;
+}
+.btn-food-search:hover { background: #444; }
+.food-results { margin-top: 0.8rem; }
+
+/* ── Form grid ── */
+.form-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.2rem; margin-bottom: 1.4rem; }
+.field label { display: block; font-size: 0.72rem; color: #888; letter-spacing: 1px; margin-bottom: 0.5rem; text-transform: uppercase; font-weight: 600; }
+.field input, .field select { width: 100%; background: #1a1a1a; border: 1px solid #252525; color: #fff; padding: 0.75rem 1rem; border-radius: 4px; font-size: 0.9rem; box-sizing: border-box; outline: none; }
+.field input:focus, .field select:focus { border-color: #e53e3e; }
+.field select option { background: #1a1a1a; }
+
+.btn-generate { width: 100%; background: #e53e3e; color: #fff; border: none; padding: 1.1rem; font-family: 'Barlow', sans-serif; font-size: 0.95rem; font-weight: 800; letter-spacing: 2px; border-radius: 4px; cursor: pointer; transition: background 0.2s; text-transform: uppercase; }
+.btn-generate:hover { background: #c53030; }
+.btn-generate:disabled { background: #444; cursor: not-allowed; color: #888; }
+
+.loading-card { background: #111; border: 1px solid #1a1a1a; border-radius: 4px; padding: 3rem; text-align: center; color: #888; }
+.loader-ring { width: 50px; height: 50px; border: 3px solid #222; border-top: 3px solid #e53e3e; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 1rem; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.macro-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.2rem; margin-bottom: 1.5rem; }
+.macro-card { background: #111; border: 1px solid #1a1a1a; border-radius: 4px; padding: 1.5rem; text-align: center; }
+.macro-card .m-label { font-family: 'Bebas Neue', sans-serif; font-size: 1.1rem; letter-spacing: 2px; color: #888; margin-bottom: 0.4rem; }
+.macro-card .m-value { font-family: 'Bebas Neue', sans-serif; font-size: 2.8rem; font-weight: 900; line-height: 1; }
+.macro-card .m-unit { font-size: 0.75rem; color: #555; margin-top: 0.4rem; text-transform: uppercase; font-weight: 600; letter-spacing: 1px; }
+.macro-card .m-bar { height: 4px; background: #222; border-radius: 2px; margin-top: 1rem; overflow: hidden; }
+.macro-card .m-fill { height: 100%; border-radius: 2px; }
+
+.plan-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.4rem; border-bottom: 1px solid #222; padding-bottom: 0.8rem; }
+.plan-header h2 { margin-bottom: 0; border-bottom: none; padding-bottom: 0; }
+.btn-save { background: transparent; border: 1px solid #e53e3e; color: #e53e3e; padding: 0.5rem 1.2rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem; font-weight: 700; letter-spacing: 1px; transition: all 0.2s; }
+.btn-save:hover { background: #e53e3e; color: #fff; }
+
+.meal-plan-content { color: #ccc; line-height: 2; font-size: 0.95rem; }
+.meal-section { margin-bottom: 1.8rem; }
+.meal-section h3 { color: #e53e3e; font-size: 1.05rem; margin: 0 0 0.8rem; letter-spacing: 1px; text-transform: uppercase; font-family: 'Barlow', sans-serif; font-weight: 800; border-left: 3px solid #e53e3e; padding-left: 0.8rem; }
+.meal-item { background: #1a1a1a; border-radius: 4px; padding: 0.8rem 1rem; margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; }
+.meal-item-name { color: #fff; font-weight: 600; font-size: 0.9rem; }
+.meal-item-macros { display: flex; gap: 1rem; font-size: 0.8rem; }
+.meal-item-macros span { color: #888; }
+.meal-item-macros .prot { color: #48bb78; }
+.meal-item-macros .cal { color: #ed8936; }
+.meal-tip { color: #666; font-style: italic; font-size: 0.82rem; margin-top: 0.5rem; padding-left: 0.5rem; border-left: 2px solid #333; }
+.pro-tips { background: #0f1a0f; border: 1px solid #1a3a1a; border-radius: 4px; padding: 1.2rem 1.5rem; margin-top: 1.5rem; }
+.pro-tips h3 { color: #48bb78; font-size: 1rem; margin: 0 0 0.8rem; letter-spacing: 1px; font-family: 'Barlow', sans-serif; }
+.pro-tips li { color: #aaa; font-size: 0.88rem; margin-bottom: 0.5rem; line-height: 1.6; }
+
+.chat-history { min-height: 60px; max-height: 400px; overflow-y: auto; margin-bottom: 1.2rem; }
+.chat-msg { margin-bottom: 1rem; }
+.chat-msg.user .bubble { background: #1a1a2e; border: 1px solid #2b2b45; border-radius: 4px; padding: 0.8rem 1.2rem; color: #ccc; font-size: 0.9rem; max-width: 80%; margin-left: auto; }
+.chat-msg.ai .bubble { background: #1a1a1a; border: 1px solid #252525; border-radius: 4px; padding: 0.8rem 1.2rem; color: #ddd; font-size: 0.9rem; max-width: 92%; white-space: pre-wrap; line-height: 1.8; }
+.chat-msg .sender { font-size: 0.68rem; color: #555; margin-bottom: 0.3rem; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
+.chat-msg.user .sender { text-align: right; }
+.chat-msg.ai .sender { color: #e53e3e; }
+.chat-input-row { display: flex; gap: 0.8rem; }
+.chat-input-row input { flex: 1; background: #1a1a1a; border: 1px solid #252525; color: #fff; padding: 0.8rem 1.2rem; border-radius: 4px; font-size: 0.9rem; outline: none; }
+.chat-input-row input:focus { border-color: #e53e3e; }
+.btn-send { background: #e53e3e; color: #fff; border: none; padding: 0.8rem 1.8rem; border-radius: 4px; font-weight: 800; cursor: pointer; letter-spacing: 1px; }
+.btn-send:hover { background: #c53030; }
+
+@media (max-width: 1200px) { .form-grid, .macro-row { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 768px) {
+  .sidebar { width: 70px; min-width: 70px; max-width: 70px; padding: 20px 10px; }
+  .sidebar-logo, .sidebar-menu li a span:not(.icon) { display: none; }
+  .main-content-area { padding: 20px; }
+  .form-grid, .macro-row, .food-search-row { grid-template-columns: 1fr; flex-direction: column; }
+}
+</style>
+
+<script>
+/* ══════════════════════════════════════════════
+   ✅ FOOD SEARCH — new function added here
+   ══════════════════════════════════════════════ */
+async function searchFood() {
+  const query = document.getElementById('foodSearch').value.trim();
+  if (!query) return;
+
+  // Hide any existing AI error box - food search is separate
+  hideError();
+
+  const resultsDiv = document.getElementById('foodResults');
+  resultsDiv.innerHTML = '<div style="color:#888;font-size:0.85rem;padding:0.5rem;">Searching...</div>';
+
+  try {
+    const res = await fetch(
+  `/food-search/?q=${encodeURIComponent(query)}`
+);
+
+    if (!res.ok) throw new Error('Search API unavailable');
+
+    const data = await res.json();
+    const products = (data.products || []).filter(p =>
+      p.product_name &&
+      p.nutriments &&
+      (p.nutriments['energy-kcal_100g'] || p.nutriments['energy_100g'])
+    );
+
+    if (!products.length) {
+      resultsDiv.innerHTML = '<div style="color:#888;font-size:0.85rem;padding:0.5rem;">No results found. Try: "chicken", "rice", "paneer", "oats"</div>';
+      return;
+    }
+
+    resultsDiv.innerHTML = products.map(p => {
+      const n = p.nutriments;
+      const cal  = Math.round(n['energy-kcal_100g'] || (n['energy_100g'] || 0) / 4.184);
+      const prot = Math.round((n['proteins_100g'] || 0) * 10) / 10;
+      const carb = Math.round((n['carbohydrates_100g'] || 0) * 10) / 10;
+      const fat  = Math.round((n['fat_100g'] || 0) * 10) / 10;
+      const name = (p.product_name || 'Unknown').slice(0, 45);
+
+      return `<div
+        onclick="selectFood('${name.replace(/'/g,"\\'")}', ${cal}, ${prot}, ${carb}, ${fat})"
+        style="background:#1a1a1a;border:1px solid #252525;border-radius:4px;
+               padding:0.7rem 1rem;margin-bottom:0.4rem;cursor:pointer;
+               display:flex;justify-content:space-between;align-items:center;
+               gap:1rem;transition:border-color 0.15s;"
+        onmouseover="this.style.borderColor='#e53e3e'"
+        onmouseout="this.style.borderColor='#252525'">
+        <div style="color:#fff;font-size:0.88rem;font-weight:600;flex:1;">${name}</div>
+        <div style="display:flex;gap:0.8rem;font-size:0.78rem;white-space:nowrap;flex-shrink:0;">
+          <span style="color:#e53e3e;font-weight:700;">${cal} kcal</span>
+          <span style="color:#48bb78;">P:${prot}g</span>
+          <span style="color:#ed8936;">C:${carb}g</span>
+          <span style="color:#4299e1;">F:${fat}g</span>
+          <span style="color:#555;font-size:0.7rem;">/ 100g</span>
+        </div>
+      </div>`;
+    }).join('');
+
+  } catch(e) {
+    console.error('Food search error:', e);
+    resultsDiv.innerHTML = `<div style="color:#ff6b6b;font-size:0.85rem;padding:0.5rem;">
+      ❌ Search failed: ${e.message}<br>
+      <span style="color:#888;font-size:0.78rem;">Open Food Facts may be temporarily unavailable. Try again in a moment.</span>
+    </div>`;
+  }
+}
+
+function selectFood(name, cal, prot, carb, fat) {
+  hideError(); // clear any AI error box
+  const resultsDiv = document.getElementById('foodResults');
+  resultsDiv.innerHTML = `
+    <div style="background:#0f1a0f;border:1px solid #2a5a2a;border-radius:4px;
+                padding:0.8rem 1rem;color:#48bb78;font-size:0.88rem;">
+      ✅ <strong>${name}</strong>
+      <span style="color:#aaa;margin-left:0.5rem;">
+        ${cal} kcal &nbsp;|&nbsp;
+        <span style="color:#48bb78;">Protein: ${prot}g</span> &nbsp;|&nbsp;
+        <span style="color:#ed8936;">Carbs: ${carb}g</span> &nbsp;|&nbsp;
+        <span style="color:#4299e1;">Fat: ${fat}g</span>
+        &nbsp;per 100g
+      </span>
+      <div style="color:#666;font-size:0.78rem;margin-top:0.4rem;">
+        Adjust portion size accordingly when logging meals.
+      </div>
+    </div>`;
+  window.selectedFood = { name, cal, prot, carb, fat };
+  document.getElementById('foodSearch').value = name;
+}
+
+
+// Allow pressing Enter in the food search input
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('foodSearch').addEventListener('keydown', e => {
+    if (e.key === 'Enter') searchFood();
+  });
+});
+
+function fillFromFood(cal, prot, carb, fat, name) {
+  // Highlights the result and shows a confirmation — weight field gets focus
+  document.getElementById('foodResults').innerHTML +=
+    `<p style="color:#48bb78;font-size:0.82rem;margin-top:0.5rem;">✅ Selected: <strong>${name}</strong> — enter your weight in kg above to calculate your totals.</p>`;
+}
+/* ══════════════════════════════════════════════ */
+
+function calcMacros(age, gender, weightKg, heightCm, activity, goal, diet) {
+  let bmr = gender === 'male'
+    ? (10*weightKg) + (6.25*heightCm) - (5*age) + 5
+    : (10*weightKg) + (6.25*heightCm) - (5*age) - 161;
+  const actMap = { sedentary:1.2, lightly_active:1.375, moderately_active:1.55, very_active:1.725 };
+  let tdee = bmr * (actMap[activity] || 1.375);
+  let cal = tdee + (goal==='muscle_gain' ? 400 : goal==='fat_loss' ? -450 : 0);
+  let protMul = 1.6;
+  if (age<=19) protMul = goal==='muscle_gain'?(gender==='male'?2.0:1.7):goal==='fat_loss'?(gender==='male'?2.2:1.9):(gender==='male'?1.5:1.3);
+  else if (age<=39) protMul = goal==='muscle_gain'?(gender==='male'?2.1:1.8):goal==='fat_loss'?(gender==='male'?2.3:2.1):(gender==='male'?1.7:1.5);
+  else protMul = goal==='muscle_gain'?(gender==='male'?1.9:1.7):goal==='fat_loss'?(gender==='male'?2.1:1.9):(gender==='male'?1.5:1.3);
+  let prot = weightKg * protMul;
+  if (diet==='vegetarian') prot *= 1.10;
+  if (diet==='vegan') prot *= 1.15;
+  const fatCal = cal * 0.25;
+  const carbCal = cal - (prot*4) - fatCal;
+  return {
+    bmr: Math.round(bmr), tdee: Math.round(tdee), calories: Math.round(cal),
+    protein: Math.round(prot), fats: Math.round(fatCal/9),
+    carbs: Math.max(0, Math.round(carbCal/4))
+  };
+}
+
+let currentMacros = null;
+let currentProfile = null;
+let chatContext = [];
+
+function showError(msg) {
+  const box = document.getElementById('errorBox');
+  box.style.display = 'block';
+  box.innerHTML = `❌ <strong>Error:</strong> ${msg}<br><small style="color:#888">Open F12 → Console for full details.</small>`;
+}
+function hideError() { document.getElementById('errorBox').style.display = 'none'; }
+
+async function generatePlan() {
+  const age     = parseInt(document.getElementById('age').value);
+  const gender  = document.getElementById('gender').value;
+  const height  = parseFloat(document.getElementById('height').value);
+  const weight  = parseFloat(document.getElementById('weight').value);
+  const activity = document.getElementById('activity').value;
+  const goal    = document.getElementById('goal').value;
+  const diet    = document.getElementById('diet').value;
+  const cuisine = document.getElementById('cuisine').value;
+
+  if (!age || !height || !weight) {
+    showError('Please fill in Age, Height and Weight before generating.');
+    return;
+  }
+
+  hideError();
+  const btn = document.getElementById('generateBtn');
+  btn.disabled = true;
+  btn.textContent = '⏳ GENERATING...';
+
+  document.getElementById('loadingCard').style.display = 'block';
+  document.getElementById('resultsSection').style.display = 'none';
+  document.getElementById('loadingMsg').textContent = 'Calculating your macros...';
+
+  currentMacros  = calcMacros(age, gender, weight, height, activity, goal, diet);
+  currentProfile = { age, gender, weight, height, activity, goal, diet, cuisine };
+
+  const colors = { calories:'#e53e3e', protein:'#48bb78', carbs:'#ed8936', fats:'#4299e1' };
+  document.getElementById('macroRow').innerHTML =
+    ['calories','protein','carbs','fats'].map(k => `
+      <div class="macro-card">
+        <div class="m-label">${k.toUpperCase()}</div>
+        <div class="m-value" style="color:${colors[k]}">${currentMacros[k]}</div>
+        <div class="m-unit">${k==='calories'?'kcal':'grams / day'}</div>
+        <div class="m-bar"><div class="m-fill" style="background:${colors[k]};width:100%"></div></div>
+      </div>`).join('');
+
+  document.getElementById('loadingMsg').textContent = 'AI is building your meal plan... (~10-15 sec)';
+
+  const prompt = buildPrompt(currentProfile, currentMacros);
+  chatContext = [{ role: 'user', content: prompt }];
+
+  try {
+    const aiText = await callClaude(chatContext);
+    chatContext.push({ role: 'assistant', content: aiText });
+    renderMealPlan(aiText);
+    document.getElementById('loadingCard').style.display = 'none';
+    document.getElementById('resultsSection').style.display = 'block';
+  } catch(e) {
+    console.error('generatePlan error:', e);
+    document.getElementById('loadingCard').style.display = 'none';
+    showError(e.message);
+  }
+
+  btn.disabled = false;
+  btn.textContent = '⚡ GENERATE MY NUTRITION PLAN';
+}
+
+function buildPrompt(p, m) {
+  const goalLabel = {muscle_gain:'Muscle Gain / Bulking', fat_loss:'Fat Loss / Cutting', maintenance:'Maintenance'}[p.goal];
+  const actLabel  = {sedentary:'Sedentary', lightly_active:'Lightly Active', moderately_active:'Moderately Active', very_active:'Very Active'}[p.activity];
+  return `You are a certified sports nutritionist. Create a detailed personalized daily meal plan.
+
+User profile:
+- Age: ${p.age} | Gender: ${p.gender} | Weight: ${p.weight}kg | Height: ${p.height}cm
+- Activity: ${actLabel} | Goal: ${goalLabel}
+- Diet preference: ${p.diet} | Cuisine: ${p.cuisine}
+- Daily targets — Calories: ${m.calories} kcal | Protein: ${m.protein}g | Carbs: ${m.carbs}g | Fats: ${m.fats}g
+
+Format your response EXACTLY like this:
+
+🍳 BREAKFAST (~${Math.round(m.protein*0.27)}g protein)
+- [food item]: [amount]g | [X]g protein | [X] kcal
+- [food item]: [amount]g | [X]g protein | [X] kcal
+- [food item]: [amount]g | [X]g protein | [X] kcal
+Tip: [practical cooking or timing tip]
+
+🍗 LUNCH (~${Math.round(m.protein*0.32)}g protein)
+- [food item]: [amount]g | [X]g protein | [X] kcal
+- [food item]: [amount]g | [X]g protein | [X] kcal
+- [food item]: [amount]g | [X]g protein | [X] kcal
+Tip: [practical tip]
+
+🥛 EVENING SNACK (~${Math.round(m.protein*0.15)}g protein)
+- [food item]: [amount] | [X]g protein | [X] kcal
+- [food item]: [amount] | [X]g protein | [X] kcal
+Tip: [practical tip]
+
+🍽️ DINNER (~${Math.round(m.protein*0.26)}g protein)
+- [food item]: [amount]g | [X]g protein | [X] kcal
+- [food item]: [amount]g | [X]g protein | [X] kcal
+- [food item]: [amount]g | [X]g protein | [X] kcal
+Tip: [practical tip]
+
+PRO TIPS
+1. [tip specific to this person's goal]
+2. [tip specific to their diet type]
+3. [timing or lifestyle tip]
+
+Use only ${p.cuisine} cuisine foods. Be specific with brand names or common local foods where helpful.`;
+}
+
+function renderMealPlan(text) {
+  const div = document.getElementById('mealPlanOutput');
+  const lines = text.split('\n');
+  let html = '';
+  let inSection = false;
+  let inProTips = false;
+
+  for (let line of lines) {
+    line = line.trim();
+    if (!line) continue;
+
+    if (/^(🍳|🍗|🥛|🍽️|🌮|🥗|🥣|🧀|🧆)/.test(line)) {
+      if (inSection) html += '</div>';
+      html += `<div class="meal-section"><h3>${line}</h3>`;
+      inSection = true; inProTips = false;
+      continue;
+    }
+
+    if (/^PRO TIPS?/i.test(line)) {
+      if (inSection) html += '</div>';
+      inSection = false; inProTips = true;
+      html += '<div class="pro-tips"><h3>⚡ PRO TIPS</h3><ul>';
+      continue;
+    }
+
+    if (inProTips) {
+      if (/^\d+\./.test(line)) html += `<li>${line.replace(/^\d+\.\s*/, '')}</li>`;
+      continue;
+    }
+
+    if (line.startsWith('-') && inSection) {
+      const content = line.replace(/^-\s*/, '');
+      const parts = content.split('|');
+      if (parts.length >= 2) {
+        const namePart = parts[0].trim();
+        const protPart = parts.find(p => p.toLowerCase().includes('protein')) || '';
+        const calPart  = parts.find(p => p.toLowerCase().includes('kcal')) || '';
+        html += `<div class="meal-item">
+          <span class="meal-item-name">${namePart}</span>
+          <span class="meal-item-macros">
+            ${protPart ? `<span class="prot">${protPart.trim()}</span>` : ''}
+            ${calPart  ? `<span class="cal">${calPart.trim()}</span>` : ''}
+          </span>
+        </div>`;
+      } else {
+        html += `<div class="meal-item"><span class="meal-item-name">${content}</span></div>`;
+      }
+      continue;
+    }
+
+    if (/^Tip:/i.test(line) && inSection) {
+      html += `<div class="meal-tip">💡 ${line}</div>`;
+      continue;
+    }
+
+    if (inSection) {
+      html += `<div style="color:#888; font-size:0.85rem; margin:0.3rem 0">${line}</div>`;
+    }
+  }
+
+  if (inSection) html += '</div>';
+  if (inProTips) html += '</ul></div>';
+  div.innerHTML = html || `<pre style="color:#ccc;white-space:pre-wrap">${text}</pre>`;
+}
+
+async function sendChat() {
+  const input = document.getElementById('chatInput');
+  const msg = input.value.trim();
+  if (!msg) return;
+  if (chatContext.length === 0) {
+    showError('Please generate a nutrition plan first before asking questions.');
+    return;
+  }
+
+  const history = document.getElementById('chatHistory');
+  history.innerHTML += `<div class="chat-msg user"><div class="sender">You</div><div class="bubble">${msg}</div></div>`;
+  input.value = '';
+  chatContext.push({ role: 'user', content: msg });
+
+  const thinkingEl = document.createElement('div');
+  thinkingEl.className = 'chat-msg ai';
+  thinkingEl.innerHTML = '<div class="sender">Nutrition AI</div><div class="bubble" style="color:#555">Thinking...</div>';
+  history.appendChild(thinkingEl);
+  history.scrollTop = history.scrollHeight;
+
+  try {
+    const reply = await callClaude(chatContext);
+    chatContext.push({ role: 'assistant', content: reply });
+    thinkingEl.querySelector('.bubble').style.color = '#ddd';
+    thinkingEl.querySelector('.bubble').textContent = reply;
+  } catch(e) {
+    thinkingEl.querySelector('.bubble').textContent = `Error: ${e.message}`;
+    thinkingEl.querySelector('.bubble').style.color = '#ff6b6b';
+  }
+  history.scrollTop = history.scrollHeight;
+}
+
+async function callClaude(messages) {
+  let res;
+  try {
+    res = await fetch('/nutrition/ai-chat/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+      body: JSON.stringify({ messages })
+    });
+  } catch(networkErr) {
+    throw new Error('Network error — is the Django server running? ' + networkErr.message);
+  }
+
+  let data;
+  try {
+    data = await res.json();
+  } catch(jsonErr) {
+    const raw = await res.text().catch(() => '(could not read response)');
+    console.error('Non-JSON response:', raw);
+    throw new Error(`Server returned non-JSON (status ${res.status}). Check terminal for Django errors.`);
+  }
+
+  if (!res.ok || data.error) throw new Error(data.error || data.detail || `HTTP ${res.status}`);
+  if (!data.reply) throw new Error('Server responded but "reply" field is missing. Check views.py.');
+  return data.reply;
+}
+
+function savePlan() {
+  const content = document.getElementById('mealPlanOutput').innerText;
+  if (!content.trim()) { alert('No plan to save yet. Generate a plan first.'); return; }
+  const blob = new Blob([content], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'MyGym_NutritionPlan.txt';
+  a.click();
+}
+
+function getCookie(name) {
+  const val = `; ${document.cookie}`.split(`; ${name}=`);
+  if (val.length === 2) return val.pop().split(';').shift();
+  return '';
+}
+</script>
+
+<style>
+/* ── Food result items styling ── */
+.food-result-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  background: #1a1a1a;
+  border: 1px solid #252525;
+  border-radius: 4px;
+  padding: 0.7rem 1rem;
+  margin-bottom: 0.4rem;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+.food-result-item:hover {
+  border-color: #e53e3e;
+  background: #1f1f1f;
+}
+.food-result-name {
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.88rem;
+}
+.food-result-macros {
+  font-size: 0.82rem;
+  display: flex;
+  gap: 0.3rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+</style>
+{% endblock %}

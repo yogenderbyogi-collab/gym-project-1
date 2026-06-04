@@ -1,0 +1,394 @@
+{% extends 'dashboard.html' %}
+{% load static %}
+
+{% block dashboard_content %}
+<div style="padding: 2rem; margin-left: 260px;">
+
+{% if messages %}
+  {% for message in messages %}
+    <div class="sg-alert sg-alert-{{ message.tags }}">
+      {% if message.tags == 'success' %}&#10003;{% else %}&#9888;{% endif %}
+      {{ message }}
+    </div>
+  {% endfor %}
+{% endif %}
+
+<div class="sg-header">
+  <div>
+    <h1 class="sg-title">SETTINGS</h1>
+    <p class="sg-sub">Manage your account and preferences</p>
+  </div>
+  <div class="sg-avatar">
+    {% if member.profile_picture %}
+      <img src="{{ member.profile_picture.url }}" style="width:52px;height:52px;border-radius:50%;object-fit:cover;">
+    {% else %}
+      {{ request.user.first_name|first|upper }}{{ request.user.last_name|first|upper }}
+    {% endif %}
+  </div>
+</div>
+
+<!-- TAB NAV -->
+<div class="sg-tabs">
+  <button class="sg-tab active" onclick="sgTab('profile',this)">&#128100; Profile</button>
+  <button class="sg-tab" onclick="sgTab('password',this)">&#128274; Password</button>
+  <button class="sg-tab" onclick="sgTab('membership',this)">&#128179; Membership</button>
+  <button class="sg-tab sg-tab-red" onclick="sgTab('danger',this)">&#9888; Danger Zone</button>
+</div>
+
+<!-- TAB 1 — PROFILE -->
+<div class="sg-panel active" id="sg-profile">
+  <div class="sg-card">
+    <p class="sg-card-title">PERSONAL INFORMATION</p>
+    <p class="sg-card-desc">Update your name, email and fitness profile</p>
+
+    <form method="POST" action="{% url 'settings' %}" enctype="multipart/form-data">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="update_profile">
+
+      <!-- PROFILE PHOTO -->
+      <div class="sg-field sg-full" style="margin-bottom:1.25rem">
+        <label>Profile Photo</label>
+        <div style="display:flex;align-items:center;gap:1rem;margin-top:4px">
+          {% if member.profile_picture %}
+            <img src="{{ member.profile_picture.url }}" style="width:70px;height:70px;border-radius:50%;object-fit:cover;border:2px solid #e53e3e;">
+          {% else %}
+            <div style="width:70px;height:70px;border-radius:50%;background:#e53e3e;display:flex;align-items:center;justify-content:center;font-size:1.5rem;font-weight:900;color:#fff;flex-shrink:0;">
+              {{ request.user.first_name|first|upper }}
+            </div>
+          {% endif %}
+          <div>
+            <input type="file" name="profile_picture" accept="image/*" style="color:#aaa;font-size:.85rem">
+            <p style="font-size:.72rem;color:#555;margin-top:4px">JPG, PNG. Max 2MB.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="sg-grid">
+        <div class="sg-field">
+          <label>First Name</label>
+          <input type="text" name="first_name" value="{{ request.user.first_name }}" placeholder="John" required>
+        </div>
+        <div class="sg-field">
+          <label>Last Name</label>
+          <input type="text" name="last_name" value="{{ request.user.last_name }}" placeholder="Smith" required>
+        </div>
+        <div class="sg-field sg-full">
+          <label>Email Address</label>
+          <input type="email" name="email" value="{{ request.user.email }}" placeholder="john@example.com" required>
+        </div>
+        <div class="sg-field">
+          <label>Username</label>
+          <input type="text" name="username" value="{{ request.user.username }}" placeholder="johndoe123" required>
+        </div>
+        <div class="sg-field">
+          <label>Phone Number</label>
+          <input type="tel" name="phone" value="{{ member.phone|default:'' }}" placeholder="+1 (555) 000-0000">
+        </div>
+      </div>
+
+      <p class="sg-section-label">FITNESS PROFILE</p>
+      <div class="sg-grid">
+        <div class="sg-field">
+          <label>Primary Goal</label>
+          <select name="fitness_goal">
+            <option value="">Select goal...</option>
+            <option value="lose_weight"       {% if member.fitness_goal == 'lose_weight' %}selected{% endif %}>Lose Weight</option>
+            <option value="build_muscle"      {% if member.fitness_goal == 'build_muscle' %}selected{% endif %}>Build Muscle</option>
+            <option value="improve_endurance" {% if member.fitness_goal == 'improve_endurance' %}selected{% endif %}>Improve Endurance</option>
+            <option value="stay_fit"          {% if member.fitness_goal == 'stay_fit' %}selected{% endif %}>Stay Fit</option>
+            <option value="flexibility"       {% if member.fitness_goal == 'flexibility' %}selected{% endif %}>Flexibility &amp; Mobility</option>
+          </select>
+        </div>
+        <div class="sg-field">
+          <label>Experience Level</label>
+          <select name="experience_level">
+            <option value="">Select level...</option>
+            <option value="beginner"     {% if member.experience_level == 'beginner' %}selected{% endif %}>Beginner</option>
+            <option value="intermediate" {% if member.experience_level == 'intermediate' %}selected{% endif %}>Intermediate</option>
+            <option value="advanced"     {% if member.experience_level == 'advanced' %}selected{% endif %}>Advanced</option>
+          </select>
+        </div>
+      </div>
+
+      <button type="submit" class="sg-btn-save">SAVE CHANGES &#10003;</button>
+    </form>
+  </div>
+</div>
+
+<!-- TAB 2 — PASSWORD -->
+<div class="sg-panel" id="sg-password">
+  <div class="sg-card">
+    <p class="sg-card-title">CHANGE PASSWORD</p>
+    <p class="sg-card-desc">Choose a strong password to keep your account secure</p>
+
+    <div class="sg-rules-box">
+      <p class="sg-rules-title">PASSWORD REQUIREMENTS</p>
+      <div class="sg-rules-grid">
+        <span id="r-len">&#9675; At least 8 characters</span>
+        <span id="r-upper">&#9675; One uppercase letter</span>
+        <span id="r-num">&#9675; One number</span>
+        <span id="r-special">&#9675; One special character</span>
+      </div>
+    </div>
+
+    <form method="POST" action="{% url 'settings' %}" style="max-width:500px">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="change_password">
+      <div class="sg-field" style="margin-bottom:1rem">
+        <label>Current Password</label>
+        <div class="sg-pw-wrap">
+          <input type="password" id="cur-pw" name="current_password" placeholder="Enter current password" required>
+          <button type="button" class="sg-eye" onclick="sgEye('cur-pw',this)">&#128065;</button>
+        </div>
+      </div>
+      <div class="sg-field" style="margin-bottom:0.5rem">
+        <label>New Password</label>
+        <div class="sg-pw-wrap">
+          <input type="password" id="new-pw" name="new_password" placeholder="Enter new password" required oninput="sgStrength(this.value)">
+          <button type="button" class="sg-eye" onclick="sgEye('new-pw',this)">&#128065;</button>
+        </div>
+        <div class="sg-bar"><div id="sg-bar-fill"></div></div>
+        <span id="sg-bar-label" class="sg-bar-label"></span>
+      </div>
+      <div class="sg-field" style="margin-bottom:1.5rem">
+        <label>Confirm New Password</label>
+        <div class="sg-pw-wrap">
+          <input type="password" id="conf-pw" name="confirm_password" placeholder="Repeat new password" required oninput="sgMatch()">
+          <button type="button" class="sg-eye" onclick="sgEye('conf-pw',this)">&#128065;</button>
+        </div>
+        <span id="sg-match-msg" class="sg-bar-label"></span>
+      </div>
+      <button type="submit" class="sg-btn-save">UPDATE PASSWORD &#128274;</button>
+    </form>
+  </div>
+</div>
+
+<!-- TAB 3 — MEMBERSHIP -->
+<div class="sg-panel" id="sg-membership">
+  <div class="sg-card">
+    <p class="sg-card-title">MEMBERSHIP PLAN</p>
+    <p class="sg-card-desc">Your current plan and billing information</p>
+    <div class="sg-plan-banner">
+      <div style="display:flex;align-items:center;gap:12px">
+        <span style="font-size:1.5rem;color:#e53e3e">&#9733;</span>
+        <div>
+          <p style="font-size:1rem;font-weight:900;letter-spacing:.06em;color:#fff;margin:0 0 2px">{{ member.membership_type|upper|default:"BASIC" }} MEMBER</p>
+          <p style="font-size:.78rem;color:#666;margin:0">Member since {{ request.user.date_joined|date:"F Y" }}</p>
+        </div>
+      </div>
+      <span class="sg-active-pill"><span class="sg-dot"></span>ACTIVE</span>
+    </div>
+    <div class="sg-plan-grid">
+      <div class="sg-plan-card {% if member.membership_type == 'basic' or not member.membership_type %}sg-plan-on{% endif %}">
+        <p class="sg-plan-name">BASIC</p>
+        <p class="sg-plan-price">$29<span>/mo</span></p>
+        <ul class="sg-plan-list">
+          <li>&#10003; Gym floor access</li>
+          <li>&#10003; 2 guest passes/month</li>
+          <li>&#10003; Locker access</li>
+          <li class="off">&#10005; Personal trainer</li>
+          <li class="off">&#10005; Classes included</li>
+          <li class="off">&#10005; 24/7 keycard access</li>
+        </ul>
+        {% if member.membership_type == 'basic' or not member.membership_type %}
+          <span class="sg-cur-label">CURRENT PLAN</span>
+        {% else %}
+          <form method="POST" action="{% url 'settings' %}">{% csrf_token %}
+            <input type="hidden" name="action" value="change_plan">
+            <input type="hidden" name="plan" value="basic">
+            <button type="submit" class="sg-plan-btn">DOWNGRADE</button>
+          </form>
+        {% endif %}
+      </div>
+      <div class="sg-plan-card {% if member.membership_type == 'premium' %}sg-plan-on{% endif %}">
+        <span class="sg-popular">MOST POPULAR</span>
+        <p class="sg-plan-name">PREMIUM</p>
+        <p class="sg-plan-price">$59<span>/mo</span></p>
+        <ul class="sg-plan-list">
+          <li>&#10003; Everything in Basic</li>
+          <li>&#10003; Unlimited guest passes</li>
+          <li>&#10003; 1 PT session/month</li>
+          <li>&#10003; All classes included</li>
+          <li>&#10003; 24/7 keycard access</li>
+          <li>&#10003; Nutrition consultation</li>
+        </ul>
+        {% if member.membership_type == 'premium' %}
+          <span class="sg-cur-label">CURRENT PLAN</span>
+        {% else %}
+          <form method="POST" action="{% url 'settings' %}">{% csrf_token %}
+            <input type="hidden" name="action" value="change_plan">
+            <input type="hidden" name="plan" value="premium">
+            <button type="submit" class="sg-plan-btn sg-plan-btn-red">UPGRADE</button>
+          </form>
+        {% endif %}
+      </div>
+    </div>
+    <p class="sg-section-label">BILLING DETAILS</p>
+    <div class="sg-billing">
+      <div class="sg-bill-row"><span>Next billing date</span><span>{{ next_billing|default:"—" }}</span></div>
+      <div class="sg-bill-row"><span>Payment method</span><span>•••• •••• •••• 4242</span></div>
+      <div class="sg-bill-row"><span>Billing cycle</span><span>Monthly</span></div>
+      <div class="sg-bill-row"><span>Auto-renew</span>
+        <label class="sg-toggle"><input type="checkbox" checked><span class="sg-track"><span class="sg-thumb"></span></span></label>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 4 — DANGER ZONE -->
+<div class="sg-panel" id="sg-danger">
+  <div class="sg-card sg-danger-card">
+    <p class="sg-card-title" style="color:#e53e3e">DANGER ZONE</p>
+    <p class="sg-card-desc">These actions are permanent and cannot be undone</p>
+    <div class="sg-danger-list">
+      <div class="sg-danger-row">
+        <div>
+          <p class="sg-danger-name">Freeze Membership</p>
+          <p class="sg-danger-info">Pause your membership for up to 3 months. Billing stops immediately.</p>
+        </div>
+        <form method="POST" action="{% url 'settings' %}">{% csrf_token %}
+          <input type="hidden" name="action" value="freeze_membership">
+          <button type="submit" class="sg-btn-ghost" onclick="return confirm('Freeze your membership?')">FREEZE</button>
+        </form>
+      </div>
+      <div class="sg-danger-divider"></div>
+      <div class="sg-danger-row">
+        <div>
+          <p class="sg-danger-name">Cancel Membership</p>
+          <p class="sg-danger-info">Cancel at end of billing period. Access continues until {{ billing_end|default:"end of month" }}.</p>
+        </div>
+        <form method="POST" action="{% url 'settings' %}">{% csrf_token %}
+          <input type="hidden" name="action" value="cancel_membership">
+          <button type="submit" class="sg-btn-ghost" onclick="return confirm('Cancel your membership?')">CANCEL</button>
+        </form>
+      </div>
+      <div class="sg-danger-divider"></div>
+      <div class="sg-danger-row">
+        <div>
+          <p class="sg-danger-name" style="color:#e53e3e">Delete Account</p>
+          <p class="sg-danger-info">Permanently delete your account and all data. Cannot be undone.</p>
+        </div>
+        <button type="button" class="sg-btn-red" onclick="document.getElementById('sg-del-modal').style.display='flex'">DELETE ACCOUNT</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DELETE MODAL -->
+<div id="sg-del-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:9999;align-items:center;justify-content:center">
+  <div style="background:#111;border:1px solid #2a2a2a;border-radius:14px;padding:2rem;max-width:400px;width:90%;margin:1rem">
+    <p style="font-size:1.1rem;font-weight:900;color:#fff;margin:0 0 .75rem">Delete Your Account?</p>
+    <p style="font-size:.875rem;color:#888;line-height:1.6;margin:0 0 1.25rem">This will permanently delete your account and all workout data. This <strong style="color:#ddd">cannot be undone</strong>.</p>
+    <p style="font-size:.78rem;color:#888;margin:0 0 .5rem">Type <strong style="color:#e53e3e">DELETE</strong> to confirm:</p>
+    <input type="text" id="sg-del-input" placeholder="Type DELETE here" oninput="document.getElementById('sg-del-btn').disabled=this.value!=='DELETE'"
+      style="width:100%;background:#1a1a1a;border:1px solid #333;border-radius:8px;padding:.7rem .9rem;color:#fff;font-size:.9rem;font-family:inherit;outline:none;box-sizing:border-box;margin-bottom:1.25rem">
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button onclick="document.getElementById('sg-del-modal').style.display='none'"
+        style="background:#222;border:1px solid #333;border-radius:8px;color:#aaa;font-size:.8rem;font-weight:600;padding:.65rem 1.25rem;cursor:pointer;font-family:inherit">Cancel</button>
+      <form method="POST" action="{% url 'settings' %}" style="display:inline">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="delete_account">
+        <button id="sg-del-btn" type="submit" disabled
+          style="background:#e53e3e;border:none;border-radius:8px;color:#fff;font-size:.78rem;font-weight:900;letter-spacing:.06em;padding:.65rem 1.25rem;cursor:pointer;font-family:inherit">
+          DELETE MY ACCOUNT
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<style>
+  .sg-alert{display:flex;align-items:center;gap:10px;padding:.875rem 1.25rem;border-radius:8px;font-size:.875rem;margin-bottom:1.25rem}
+  .sg-alert-success{background:rgba(56,161,105,.15);border:1px solid rgba(56,161,105,.35);color:#68d391}
+  .sg-alert-error{background:rgba(229,62,62,.12);border:1px solid rgba(229,62,62,.35);color:#fc8181}
+  .sg-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.75rem}
+  .sg-title{font-size:2.2rem;font-weight:900;letter-spacing:.05em;margin:0 0 .3rem;color:#fff}
+  .sg-sub{color:#777;font-size:.9rem;margin:0}
+  .sg-avatar{width:52px;height:52px;border-radius:50%;background:#e53e3e;display:flex;align-items:center;justify-content:center;font-size:1.1rem;font-weight:900;color:#fff;flex-shrink:0;overflow:hidden}
+  .sg-tabs{display:flex;gap:4px;background:#111;border-radius:10px;padding:4px;margin-bottom:1.75rem;overflow-x:auto}
+  .sg-tab{display:flex;align-items:center;gap:6px;padding:.55rem 1rem;background:transparent;border:none;border-radius:7px;color:#777;font-size:.82rem;font-weight:600;letter-spacing:.04em;cursor:pointer;white-space:nowrap;transition:all .2s;font-family:inherit}
+  .sg-tab:hover{color:#ccc;background:#1a1a1a}
+  .sg-tab.active{background:#1e1e1e;color:#fff;border:1px solid #2a2a2a}
+  .sg-tab-red:hover{color:#fc8181}
+  .sg-tab-red.active{color:#e53e3e}
+  .sg-panel{display:none}
+  .sg-panel.active{display:block}
+  .sg-card{background:#111;border:1px solid #222;border-radius:12px;padding:1.5rem 1.75rem;margin-bottom:1.5rem}
+  .sg-danger-card{border-color:rgba(229,62,62,.25)}
+  .sg-card-title{font-size:.82rem;font-weight:900;letter-spacing:.1em;color:#fff;margin:0 0 .4rem}
+  .sg-card-desc{font-size:.875rem;color:#666;margin:0 0 1.5rem}
+  .sg-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem}
+  .sg-field{display:flex;flex-direction:column;gap:.4rem}
+  .sg-full{grid-column:1/-1}
+  .sg-field label{font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#888}
+  .sg-field input,.sg-field select{background:#1a1a1a;border:1px solid #2a2a2a;border-radius:8px;padding:.7rem .9rem;color:#fff;font-size:.9rem;font-family:inherit;outline:none;transition:border-color .2s;width:100%;box-sizing:border-box}
+  .sg-field input::placeholder{color:#444}
+  .sg-field select option{background:#1a1a1a}
+  .sg-field input:focus,.sg-field select:focus{border-color:#e53e3e}
+  .sg-section-label{font-size:.7rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#e53e3e;margin:1.5rem 0 .75rem;padding-top:1.25rem;border-top:1px solid #1e1e1e}
+  .sg-btn-save{display:inline-flex;align-items:center;gap:8px;background:#e53e3e;color:#fff;border:none;border-radius:8px;padding:.8rem 1.6rem;font-size:.8rem;font-weight:900;letter-spacing:.1em;cursor:pointer;transition:background .2s;font-family:inherit;margin-top:.5rem}
+  .sg-btn-save:hover{background:#c53030}
+  .sg-rules-box{background:#161616;border:1px solid #222;border-radius:8px;padding:1rem 1.1rem;margin-bottom:1.25rem}
+  .sg-rules-title{font-size:.68rem;font-weight:700;letter-spacing:.1em;color:#666;margin:0 0 .6rem}
+  .sg-rules-grid{display:grid;grid-template-columns:1fr 1fr;gap:.4rem}
+  .sg-rules-grid span{font-size:.8rem;color:#555;transition:color .2s}
+  .sg-rules-grid span.ok{color:#68d391}
+  .sg-pw-wrap{position:relative}
+  .sg-pw-wrap input{padding-right:2.75rem;width:100%;box-sizing:border-box}
+  .sg-eye{position:absolute;right:.75rem;top:50%;transform:translateY(-50%);background:none;border:none;color:#555;cursor:pointer;font-size:1rem;padding:0}
+  .sg-bar{height:3px;background:#222;border-radius:2px;margin-top:6px}
+  #sg-bar-fill{height:100%;border-radius:2px;width:0;transition:width .3s,background .3s}
+  .sg-bar-label{font-size:.72rem;color:#666;margin-top:3px;display:block}
+  .sg-plan-banner{display:flex;align-items:center;justify-content:space-between;background:#161616;border:1px solid #222;border-radius:10px;padding:1rem 1.25rem;margin-bottom:1.5rem}
+  .sg-active-pill{display:flex;align-items:center;gap:6px;background:rgba(56,161,105,.12);border:1px solid rgba(56,161,105,.3);border-radius:20px;padding:5px 14px;font-size:.72rem;font-weight:700;color:#68d391}
+  .sg-dot{width:6px;height:6px;border-radius:50%;background:#68d391}
+  .sg-plan-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.5rem}
+  .sg-plan-card{background:#161616;border:1px solid #222;border-radius:10px;padding:1.25rem;position:relative}
+  .sg-plan-on{border-color:#e53e3e}
+  .sg-plan-name{font-size:.72rem;font-weight:900;letter-spacing:.12em;color:#888;margin:0 0 .5rem}
+  .sg-plan-price{font-size:2rem;font-weight:900;color:#fff;margin:0 0 1rem}
+  .sg-plan-price span{font-size:.9rem;font-weight:400;color:#666}
+  .sg-plan-list{list-style:none;padding:0;margin:0 0 1.25rem;display:flex;flex-direction:column;gap:6px}
+  .sg-plan-list li{font-size:.82rem;color:#aaa}
+  .sg-plan-list li.off{color:#444}
+  .sg-popular{position:absolute;top:-1px;right:-1px;background:#e53e3e;color:#fff;font-size:.62rem;font-weight:900;padding:3px 10px;border-radius:0 10px 0 8px}
+  .sg-cur-label{display:block;font-size:.68rem;font-weight:900;letter-spacing:.1em;color:#e53e3e;padding:.5rem 0}
+  .sg-plan-btn{width:100%;background:#222;border:1px solid #333;border-radius:7px;color:#aaa;font-size:.72rem;font-weight:700;padding:.6rem;cursor:pointer;font-family:inherit;transition:all .2s}
+  .sg-plan-btn:hover{background:#2a2a2a;color:#fff}
+  .sg-plan-btn-red{background:rgba(229,62,62,.15);border-color:rgba(229,62,62,.4);color:#e53e3e}
+  .sg-plan-btn-red:hover{background:#e53e3e;color:#fff}
+  .sg-billing{display:flex;flex-direction:column}
+  .sg-bill-row{display:flex;align-items:center;justify-content:space-between;padding:.8rem 0;border-bottom:1px solid #1a1a1a;font-size:.85rem}
+  .sg-bill-row:last-child{border-bottom:none}
+  .sg-bill-row span:first-child{color:#888}
+  .sg-bill-row span:last-child{color:#ddd;font-weight:500}
+  .sg-toggle{position:relative;display:inline-block;width:40px;height:22px;cursor:pointer}
+  .sg-toggle input{opacity:0;width:0;height:0}
+  .sg-track{position:absolute;inset:0;background:#333;border-radius:22px;transition:background .2s}
+  .sg-toggle input:checked+.sg-track{background:#e53e3e}
+  .sg-thumb{position:absolute;left:3px;top:3px;width:16px;height:16px;background:#fff;border-radius:50%;transition:transform .2s}
+  .sg-toggle input:checked+.sg-track .sg-thumb{transform:translateX(18px)}
+  .sg-danger-list{display:flex;flex-direction:column}
+  .sg-danger-row{display:flex;align-items:center;justify-content:space-between;gap:1.5rem;padding:1.25rem 0}
+  .sg-danger-divider{border:none;border-top:1px solid #1e1e1e}
+  .sg-danger-name{font-size:.9rem;font-weight:700;color:#ddd;margin:0 0 .3rem}
+  .sg-danger-info{font-size:.8rem;color:#666;margin:0;line-height:1.5;max-width:480px}
+  .sg-btn-ghost{background:transparent;border:1px solid #444;border-radius:7px;color:#aaa;font-size:.72rem;font-weight:700;padding:.6rem 1.2rem;cursor:pointer;white-space:nowrap;transition:all .2s;font-family:inherit}
+  .sg-btn-ghost:hover{border-color:#e53e3e;color:#e53e3e}
+  .sg-btn-red{background:rgba(229,62,62,.12);border:1px solid rgba(229,62,62,.4);border-radius:7px;color:#e53e3e;font-size:.72rem;font-weight:700;padding:.65rem 1.1rem;cursor:pointer;white-space:nowrap;transition:all .2s;font-family:inherit}
+  .sg-btn-red:hover{background:#e53e3e;color:#fff}
+  @media(max-width:640px){
+    .sg-grid,.sg-plan-grid{grid-template-columns:1fr}
+    .sg-danger-row{flex-direction:column;align-items:flex-start;gap:.75rem}
+  }
+</style>
+
+<script>
+function sgTab(name,btn){document.querySelectorAll('.sg-panel').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.sg-tab').forEach(b=>b.classList.remove('active'));document.getElementById('sg-'+name).classList.add('active');btn.classList.add('active');}
+function sgEye(id,btn){var inp=document.getElementById(id);inp.type=inp.type==='password'?'text':'password';btn.style.color=inp.type==='text'?'#e53e3e':'#555';}
+function sgStrength(v){var rules=[{id:'r-len',ok:v.length>=8},{id:'r-upper',ok:/[A-Z]/.test(v)},{id:'r-num',ok:/[0-9]/.test(v)},{id:'r-special',ok:/[^A-Za-z0-9]/.test(v)}];var score=0;rules.forEach(function(r){var el=document.getElementById(r.id);if(r.ok){el.classList.add('ok');el.textContent=el.textContent.replace('\u25cb','\u2713');score++;}else{el.classList.remove('ok');el.textContent=el.textContent.replace('\u2713','\u25cb');}});var fill=document.getElementById('sg-bar-fill');var lbl=document.getElementById('sg-bar-label');var colors=['#e53e3e','#e59e3e','#ecc94b','#68d391'];var labels=['Weak','Fair','Good','Strong'];fill.style.width=(score*25)+'%';fill.style.background=score?colors[score-1]:'#333';lbl.textContent=score?labels[score-1]:'';lbl.style.color=score?colors[score-1]:'#666';sgMatch();}
+function sgMatch(){var pw=document.getElementById('new-pw').value;var cf=document.getElementById('conf-pw').value;var msg=document.getElementById('sg-match-msg');if(!cf){msg.textContent='';return;}if(pw===cf){msg.textContent='\u2713 Passwords match';msg.style.color='#68d391';}else{msg.textContent='\u2717 Passwords do not match';msg.style.color='#fc8181';}}
+</script>
+
+</div>
+{% endblock %}

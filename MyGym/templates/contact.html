@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<section id="contact" style="padding-top: 120px;">
+    <div class="section-tag">Get In Touch</div>
+    <h2 class="section-title">Contact Us</h2>
+    <p class="section-desc">Ready to start? Our team is here to help you take the first step.</p>
+    <div class="contact-layout">
+        <div>
+            <div class="contact-label">Location</div>
+            <div class="contact-value">123 Fitness Avenue, Bengaluru, Karnataka</div>
+            <div class="contact-label">Phone</div>
+            <div class="contact-value">+91 98765 43210</div>
+            <div class="contact-label">Email</div>
+            <div class="contact-value">hello@mygym.in</div>
+            <div class="contact-label">Hours</div>
+            <div class="contact-value">Mon–Fri: 5am–11pm &nbsp;|&nbsp; Sat–Sun: 6am–10pm</div>
+        </div>
+        <form class="contact-form" method="POST">
+            {% csrf_token %}
+            <div class="form-row">
+                <input type="text" name="name" placeholder="Your Name" required>
+                <input type="email" name="email" placeholder="Email Address" required>
+            </div>
+            <input type="tel" name="phone" placeholder="Phone Number">
+            <select name="service">
+                <option value="" disabled selected>Select a Service</option>
+                <option>Strength Training</option>
+                <option>Cardio & HIIT</option>
+                <option>Personal Training</option>
+                <option>Yoga & Wellness</option>
+                <option>Nutrition Plans</option>
+                <option>24/7 Membership</option>
+            </select>
+            <textarea name="message" placeholder="Tell us about your fitness goals..."></textarea>
+            <button type="submit" class="btn-primary" style="border:none; cursor:pointer;">Send Message →</button>
+        </form>
+    </div>
+</section>
+{% endblock content %}

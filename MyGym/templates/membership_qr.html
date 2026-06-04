@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="dashboard-layout">
+  <div class="sidebar">
+    <div class="sidebar-logo">My<span>Gym</span></div>
+    <ul class="sidebar-menu">
+      <li><a href="{% url 'dashboard' %}"><span class="icon">📊</span> Dashboard</a></li>
+      <li><a href="{% url 'home' %}"><span class="icon">🏠</span> Home</a></li>
+      <li><a href="{% url 'workouts' %}"><span class="icon">🏋️</span> My Workouts</a></li>
+      <li><a href="{% url 'schedule' %}"><span class="icon">📅</span> Schedule</a></li>
+      <li><a href="{% url 'nutrition_ai' %}"><span class="icon">🥗</span> Nutrition</a></li>
+      <li><a href="{% url 'body_stats' %}"><span class="icon">📈</span> Body Stats</a></li>
+      <li><a href="{% url 'settings' %}"><span class="icon">⚙️</span> Settings</a></li>
+    </ul>
+  </div>
+  <div class="main-content-area">
+    <div style="max-width:500px;margin:0 auto;text-align:center;">
+      <div class="page-header" style="text-align:left;">
+        <h1>MEMBERSHIP <span style="color:#e53e3e;">QR</span></h1>
+        <p>Show this at the gym entrance for check-in</p>
+      </div>
+      <div style="background:#111;border:1px solid #1a1a1a;border-radius:4px;padding:2.5rem;">
+        <div style="background:#fff;border-radius:4px;padding:1rem;display:inline-block;margin-bottom:1.5rem;">
+          <img src="data:image/png;base64,{{ qr_code }}" alt="Membership QR Code" style="width:220px;height:220px;">
+        </div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:1.5rem;color:#fff;letter-spacing:2px;margin-bottom:0.5rem;">
+          {{ request.user.get_full_name|default:request.user.username }}
+        </div>
+        <div style="font-size:0.85rem;color:#888;margin-bottom:0.5rem;">
+          Member ID: <span style="color:#e53e3e;font-weight:700;">{{ member_id }}</span>
+        </div>
+        <div style="display:inline-block;background:#1a3a1a;border:1px solid #2a5a2a;border-radius:4px;padding:0.3rem 1rem;font-size:0.8rem;color:#48bb78;font-weight:700;letter-spacing:1px;margin-bottom:1.5rem;">
+          {{ membership_type|upper }} MEMBER — {{ status|upper }}
+        </div>
+        <br>
+        <a href="{% url 'download_qr' %}"
+          style="background:#e53e3e;color:#fff;border:none;padding:0.8rem 2rem;font-weight:800;letter-spacing:1px;border-radius:4px;cursor:pointer;text-decoration:none;font-size:0.9rem;">
+          ⬇ DOWNLOAD QR
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+<style>
+nav, footer { display: none !important; }
+.dashboard-layout { display:flex;min-height:100vh;background:#0a0a0a;position:absolute;top:0;left:0;right:0;bottom:0; }
+.sidebar { width:260px;background:#111111;border-right:1px solid #1a1a1a;display:flex;flex-direction:column;padding:30px 20px;position:fixed;top:0;bottom:0;left:0;z-index:10; }
+.sidebar-logo { font-family:'Bebas Neue',sans-serif;font-size:2rem;letter-spacing:3px;color:#fff;margin-bottom:40px;padding-left:10px; }
+.sidebar-logo span { color:#e63329; }
+.sidebar-menu { list-style:none;display:flex;flex-direction:column;gap:10px;padding:0;margin:0; }
+.sidebar-menu li a { display:flex;align-items:center;gap:15px;color:#aaa;text-decoration:none;font-weight:600;font-size:0.85rem;padding:14px 18px;border-radius:4px;text-transform:uppercase;letter-spacing:1px;transition:all 0.3s; }
+.sidebar-menu li a:hover { color:#fff;background:#1a1a1a; }
+.main-content-area { flex:1;margin-left:260px;padding:40px;background:#0a0a0a;min-height:100vh;box-sizing:border-box;overflow-y:auto; }
+.page-header { margin-bottom:2rem; }
+.page-header h1 { font-family:'Bebas Neue',sans-serif;font-size:3rem;font-weight:900;letter-spacing:2px;margin:0; }
+.page-header p { color:#aaa;margin-top:0.3rem; }
+</style>
+{% endblock %}
