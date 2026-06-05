@@ -11,13 +11,16 @@ from django.utils import timezone
 from datetime import timedelta
 import json, os, io, base64, hashlib
 
-from .models import Member, Workout, Schedule, Nutrition, WorkoutLog, BodyStat, Notification
+from .models import Member, Workout, Schedule, Nutrition, WorkoutLog, BodyStat, Notification, WaterLog, ProgressPhoto
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from .serializers import MemberSerializer, WorkoutSerializer, WorkoutLogSerializer
 
 import requests as req_lib
+from datetime import date, timedelta
+import json
+from collections import Counter
 
 # ── HELPERS ───────────────────────────────────────────────────────────────────
 
@@ -211,7 +214,6 @@ def workouts_view(request):
 @login_required
 def schedule_view(request):
     from datetime import date
-    from .models import ScheduleSession  # rename if your model differs
 
     if request.method == 'POST':
         action = request.POST.get('action')
@@ -660,3 +662,155 @@ def send_email_report(request):
     except Exception as e:
         messages.error(request, f'Email failed: {str(e)}')
     return redirect('dashboard')
+
+@login_required
+def streak_view(request):
+    from datetime import date
+    from collections import Counter
+    logs = WorkoutLog.objects.filter(user=request.user)
+    date_counts = Counter(log.completed_at.date().isoformat() for log in logs)
+    streak = get_streak(request.user)
+    total  = WorkoutLog.objects.filter(user=request.user).count()
+    best = cur = 0
+    today = date.today()
+    for i in range(365):
+        d = (today - timedelta(days=i)).isoformat()
+        if d in date_counts:
+            cur += 1; best = max(best, cur)
+        else:
+            cur = 0
+    return render(request, 'streak.html', {
+        'date_counts_json': json.dumps(dict(date_counts)),
+        'streak': streak,
+        'best_streak': best,
+        'total_workouts': total,
+    })
+
+@login_required
+def orm_view(request):
+    result = None
+    if request.method == 'POST':
+        try:
+            weight = float(request.POST.get('weight', 0))
+            reps   = int(request.POST.get('reps', 0))
+            if weight > 0 and reps > 0:
+                # Brzycki formula
+                orm = weight / (1.0278 - 0.0278 * reps)
+                result = {
+                    'orm':    round(orm, 1),
+                    'p90':    round(orm * 0.90, 1),
+                    'p80':    round(orm * 0.80, 1),
+                    'p70':    round(orm * 0.70, 1),
+                    'p60':    round(orm * 0.60, 1),
+                    'weight': weight,
+                    'reps':   reps,
+                    'zones': [
+                        ('90% — Heavy',       round(orm * 0.90, 1), '#e63329', '3-5 reps'),
+                        ('80% — Strength',    round(orm * 0.80, 1), '#f6ad55', '5-8 reps'),
+                        ('70% — Hypertrophy', round(orm * 0.70, 1), '#68d391', '8-12 reps'),
+                        ('60% — Endurance',   round(orm * 0.60, 1), '#4299e1', '12-15 reps'),
+                    ]
+                }
+        except (ValueError, ZeroDivisionError):
+            pass
+    return render(request, 'orm.html', {'result': result})
+
+# ── WATER LOG ─────────────────────────────────────────────────────────────────
+
+@login_required
+def water_view(request):
+    from datetime import date
+    today = date.today()
+    log, _ = WaterLog.objects.get_or_create(user=request.user, date=today)
+    history = WaterLog.objects.filter(user=request.user).order_by('-date')[:7]
+    return render(request, 'water.html', {'log': log, 'history': history})
+
+@login_required
+@require_POST
+def water_update(request):
+    from datetime import date
+    data   = json.loads(request.body)
+    action = data.get('action')
+    today  = date.today()
+    log, _ = WaterLog.objects.get_or_create(user=request.user, date=today)
+    if action == 'add' and log.glasses < 20:
+        log.glasses += 1
+    elif action == 'remove' and log.glasses > 0:
+        log.glasses -= 1
+    elif action == 'set_goal':
+        log.goal = int(data.get('goal', 8))
+    log.save()
+    return JsonResponse({'glasses': log.glasses, 'goal': log.goal})
+
+@login_required
+def progress_photos_view(request):
+    if request.method == 'POST':
+        photo  = request.FILES.get('photo')
+        weight = request.POST.get('weight', '').strip() or None
+        notes  = request.POST.get('notes', '').strip()
+        if photo:
+            ProgressPhoto.objects.create(
+                user=request.user, photo=photo,
+                weight=float(weight) if weight else None, notes=notes)
+            messages.success(request, 'Progress photo saved!')
+        return redirect('progress_photos')
+    photos = ProgressPhoto.objects.filter(user=request.user).order_by('-date')
+    return render(request, 'progress_photos.html', {'photos': photos})
+
+@login_required
+def delete_progress_photo(request, pk):
+    ProgressPhoto.objects.filter(id=pk, user=request.user).delete()
+    return redirect('progress_photos')
+
+@login_required
+def timer_view(request):
+    return render(request, 'timer.html')
+
+@login_required
+def workout_card_view(request):
+    from datetime import date
+    today_logs = WorkoutLog.objects.filter(
+        user=request.user,
+        completed_at__date=date.today()
+    ).select_related('workout')
+    streak = get_streak(request.user)
+    total  = WorkoutLog.objects.filter(user=request.user).count()
+    return render(request, 'workout_card.html', {
+        'today_logs': today_logs,
+        'streak': streak,
+        'total': total,
+        'today': date.today().strftime('%B %d, %Y'),
+    })
+
+@login_required
+def ai_workout_view(request):
+    return render(request, 'ai_workout.html')
+
+@csrf_exempt
+@require_POST
+def ai_workout_generate(request):
+    try:
+        data   = json.loads(request.body)
+        goal   = data.get('goal', 'muscle gain')
+        muscle = data.get('muscle', 'full body')
+        level  = data.get('level', 'intermediate')
+        days   = data.get('days', 4)
+        api_key = os.environ.get('GROQ_API_KEY', '')
+        if not api_key:
+            return JsonResponse({'error': 'GROQ_API_KEY not set'}, status=500)
+        from groq import Groq
+        client = Groq(api_key=api_key)
+        prompt = f"""You are an expert personal trainer. Generate a {days}-day workout plan.
+Goal: {goal}, Focus: {muscle}, Level: {level}
+Return ONLY a JSON object (no markdown):
+{{"plan_name":"string","days":[{{"day":"Day 1 - Monday","focus":"Chest","exercises":[{{"name":"Bench Press","sets":4,"reps":"8-10","rest":"90s","tip":"Keep back flat"}}]}}],"tips":["tip1"]}}"""
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile", max_tokens=2000,
+            messages=[{"role": "user", "content": prompt}])
+        raw  = response.choices[0].message.content.strip()
+        raw  = raw.replace('```json','').replace('```','').strip()
+        plan = json.loads(raw)
+        return JsonResponse({'plan': plan})
+    except Exception as e:
+        import traceback; print(traceback.format_exc())
+        return JsonResponse({'error': str(e)}, status=500)

@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+{% block content %}
+<style>
+  .zone-label { font-weight: 700; }
+  .zone-label.colored { color: var(--label-color, inherit); }
+</style>
+<div class="dashboard-layout">
+  <div class="sidebar">
+    <div class="sidebar-logo">My<span>Gym</span></div>
+    <ul class="sidebar-menu">
+      <li><a href="{% url 'dashboard' %}"><span class="icon">📊</span> Dashboard</a></li>
+      <li><a href="{% url 'workouts' %}"><span class="icon">🏋️</span> My Workouts</a></li>
+      <li><a href="{% url 'streak' %}"><span class="icon">🔥</span> Streak</a></li>
+      <li><a href="{% url 'water' %}"><span class="icon">💧</span> Water</a></li>
+      <li><a href="{% url 'timer' %}"><span class="icon">⏱️</span> Timer</a></li>
+      <li><a href="{% url 'orm' %}" class="active"><span class="icon">🏆</span> 1RM Calc</a></li>
+      <li><a href="{% url 'progress_photos' %}"><span class="icon">📸</span> Progress</a></li>
+      <li><a href="{% url 'ai_workout' %}"><span class="icon">🤖</span> AI Workout</a></li>
+      <li><a href="{% url 'workout_card' %}"><span class="icon">🃏</span> Share Card</a></li>
+      <li><a href="{% url 'settings' %}"><span class="icon">⚙️</span> Settings</a></li>
+    </ul>
+    <div class="sidebar-user">
+      <div class="user-avatar">{{ request.user.first_name|first|upper }}{{ request.user.last_name|first|upper }}</div>
+      <div><div class="user-name">{{ request.user.get_full_name }}</div><div class="user-role">MEMBER</div></div>
+    </div>
+  </div>
+  <div class="main-content">
+    <h1 style="font-size:2.2rem;font-weight:900;color:#fff;margin-bottom:.3rem;">1RM <span style="color:#e63329;">CALCULATOR</span></h1>
+    <p style="color:#666;margin-bottom:2rem;">Find your one-rep max using the Epley formula.</p>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:2rem;">
+      <div style="background:#111;border:1px solid #222;border-radius:16px;padding:2rem;">
+        <h3 style="color:#fff;font-size:.9rem;letter-spacing:2px;margin-bottom:1.5rem;">ENTER YOUR LIFT</h3>
+        <form method="POST">
+          {% csrf_token %}
+          <div style="margin-bottom:1rem;">
+            <label style="color:#666;font-size:.75rem;letter-spacing:2px;display:block;margin-bottom:.5rem;">WEIGHT LIFTED (KG)</label>
+            <input name="weight" type="number" step="0.5" placeholder="e.g. 100" value="{{ request.POST.weight }}"
+              style="width:100%;background:#0a0a0a;border:1px solid #333;color:#fff;padding:.9rem 1rem;border-radius:8px;font-size:1rem;outline:none;">
+          </div>
+          <div style="margin-bottom:1.5rem;">
+            <label style="color:#666;font-size:.75rem;letter-spacing:2px;display:block;margin-bottom:.5rem;">REPS PERFORMED</label>
+            <input name="reps" type="number" min="1" max="30" placeholder="e.g. 5" value="{{ request.POST.reps }}"
+              style="width:100%;background:#0a0a0a;border:1px solid #333;color:#fff;padding:.9rem 1rem;border-radius:8px;font-size:1rem;outline:none;">
+          </div>
+          <button type="submit" style="width:100%;background:#e63329;border:none;color:#fff;padding:1rem;border-radius:8px;font-weight:900;font-size:1rem;cursor:pointer;letter-spacing:1px;">CALCULATE 1RM</button>
+        </form>
+
+        <div style="margin-top:1.5rem;background:#0a0a0a;border-radius:8px;padding:1rem;color:#555;font-size:.8rem;line-height:1.7;">
+          <strong style="color:#aaa;">Epley Formula:</strong><br>
+          1RM = Weight × (1 + Reps ÷ 30)<br>
+          Most accurate for 2–12 reps.
+        </div>
+      </div>
+
+      {% if result %}
+      <div style="background:#111;border:1px solid #222;border-radius:16px;padding:2rem;">
+        <h3 style="color:#fff;font-size:.9rem;letter-spacing:2px;margin-bottom:1.5rem;">YOUR RESULTS</h3>
+        <div style="text-align:center;background:#0a0a0a;border-radius:12px;padding:1.5rem;margin-bottom:1.5rem;">
+          <div style="font-size:3.5rem;font-weight:900;color:#e63329;">{{ result.orm }} kg</div>
+          <div style="color:#666;font-size:.8rem;letter-spacing:2px;">ESTIMATED 1RM</div>
+          <div style="color:#555;font-size:.75rem;margin-top:.5rem;">Based on {{ result.weight }}kg × {{ result.reps }} reps</div>
+        </div>
+
+        <h4 style="color:#aaa;font-size:.8rem;letter-spacing:2px;margin-bottom:.8rem;">TRAINING ZONES</h4>
+        {% for label, val, color, desc in result.zones %}
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:.6rem 0;border-bottom:1px solid #1a1a1a;">
+          <div>
+            <span class="zone-label" data-label-color="{{ color }}" style="font-weight: 700;">{{ label }}</span>
+            <span style="color:#555;font-size:.75rem;margin-left:.5rem;">{{ desc }}</span>
+          </div>
+          <span style="color:#fff;font-weight:700;">{{ val }} kg</span>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div style="background:#111;border:1px solid #222;border-radius:16px;padding:2rem;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:300px;">
+        <div style="font-size:4rem;margin-bottom:1rem;">🏋️</div>
+        <div style="color:#555;text-align:center;">Enter your weight and reps<br>to calculate your 1RM</div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

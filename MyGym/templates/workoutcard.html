@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="dashboard-layout">
+  <div class="sidebar">
+    <div class="sidebar-logo">My<span>Gym</span></div>
+    <ul class="sidebar-menu">
+      <li><a href="{% url 'dashboard' %}"><span class="icon">📊</span> Dashboard</a></li>
+      <li><a href="{% url 'workouts' %}"><span class="icon">🏋️</span> My Workouts</a></li>
+      <li><a href="{% url 'streak' %}"><span class="icon">🔥</span> Streak</a></li>
+      <li><a href="{% url 'water' %}"><span class="icon">💧</span> Water</a></li>
+      <li><a href="{% url 'timer' %}"><span class="icon">⏱️</span> Timer</a></li>
+      <li><a href="{% url 'orm' %}"><span class="icon">🏆</span> 1RM Calc</a></li>
+      <li><a href="{% url 'progress_photos' %}"><span class="icon">📸</span> Progress</a></li>
+      <li><a href="{% url 'ai_workout' %}"><span class="icon">🤖</span> AI Workout</a></li>
+      <li><a href="{% url 'workout_card' %}" class="active"><span class="icon">🃏</span> Share Card</a></li>
+      <li><a href="{% url 'settings' %}"><span class="icon">⚙️</span> Settings</a></li>
+    </ul>
+    <div class="sidebar-user">
+      <div class="user-avatar">{{ request.user.first_name|first|upper }}{{ request.user.last_name|first|upper }}</div>
+      <div><div class="user-name">{{ request.user.get_full_name }}</div><div class="user-role">MEMBER</div></div>
+    </div>
+  </div>
+  <div class="main-content">
+    <h1 style="font-size:2.2rem;font-weight:900;color:#fff;margin-bottom:.3rem;">WORKOUT <span style="color:#e63329;">SHARE CARD</span></h1>
+    <p style="color:#666;margin-bottom:2rem;">Generate a shareable card of today's session.</p>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:2rem;align-items:start;">
+
+      <!-- CARD PREVIEW -->
+      <div id="shareCard" style="background:linear-gradient(135deg,#0a0a0a 0%,#1a0a0a 100%);border:1px solid #e63329;border-radius:16px;padding:2rem;position:relative;overflow:hidden;">
+        <div style="position:absolute;top:0;right:0;width:200px;height:200px;background:radial-gradient(circle,rgba(230,51,41,.15) 0%,transparent 70%);pointer-events:none;"></div>
+
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:1.8rem;letter-spacing:3px;">My<span style="color:#e63329;">Gym</span></div>
+          <div style="background:#e63329;padding:.3rem .8rem;border-radius:20px;font-size:.7rem;font-weight:700;letter-spacing:1px;">TODAY'S WORKOUT</div>
+        </div>
+
+        <div style="margin-bottom:1.5rem;">
+          <div style="font-size:1.5rem;font-weight:900;color:#fff;">{{ request.user.get_full_name|default:request.user.username }}</div>
+          <div style="color:#555;font-size:.8rem;">{{ today }}</div>
+        </div>
+
+        {% if today_logs %}
+        <div style="margin-bottom:1.5rem;">
+          {% for log in today_logs %}
+          <div style="display:flex;align-items:center;gap:.7rem;padding:.5rem 0;border-bottom:1px solid #1a1a1a;">
+            <div style="width:6px;height:6px;background:#e63329;border-radius:50%;flex-shrink:0;"></div>
+            <div style="color:#ddd;font-size:.9rem;">{{ log.workout.title }}</div>
+            <div style="margin-left:auto;background:#1a1a1a;padding:.2rem .6rem;border-radius:10px;font-size:.7rem;color:#888;">{{ log.workout.get_category_display }}</div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div style="color:#555;font-style:italic;margin-bottom:1.5rem;">No workouts logged today yet.</div>
+        {% endif %}
+
+        <div style="display:flex;gap:1.5rem;">
+          <div style="text-align:center;">
+            <div style="font-size:1.8rem;font-weight:900;color:#e63329;">{{ today_logs|length }}</div>
+            <div style="color:#555;font-size:.65rem;letter-spacing:1px;">TODAY</div>
+          </div>
+          <div style="text-align:center;">
+            <div style="font-size:1.8rem;font-weight:900;color:#f6ad55;">{{ streak }}🔥</div>
+            <div style="color:#555;font-size:.65rem;letter-spacing:1px;">STREAK</div>
+          </div>
+          <div style="text-align:center;">
+            <div style="font-size:1.8rem;font-weight:900;color:#68d391;">{{ total }}</div>
+            <div style="color:#555;font-size:.65rem;letter-spacing:1px;">TOTAL</div>
+          </div>
+        </div>
+
+        <div style="margin-top:1.5rem;color:#333;font-size:.7rem;letter-spacing:1px;">mygym.app • LIVE YOUR BEST LIFE</div>
+      </div>
+
+      <!-- ACTIONS -->
+      <div>
+        <div style="background:#111;border:1px solid #222;border-radius:16px;padding:1.5rem;margin-bottom:1rem;">
+          <h3 style="color:#fff;font-size:.85rem;letter-spacing:2px;margin-bottom:1rem;">DOWNLOAD CARD</h3>
+          <p style="color:#666;font-size:.85rem;margin-bottom:1rem;">Save your workout card as an image to share on Instagram, WhatsApp, or anywhere.</p>
+          <button onclick="downloadCard()" style="width:100%;background:#e63329;border:none;color:#fff;padding:1rem;border-radius:8px;font-weight:700;cursor:pointer;font-size:.9rem;">⬇ DOWNLOAD AS IMAGE</button>
+        </div>
+
+        <div style="background:#111;border:1px solid #222;border-radius:16px;padding:1.5rem;">
+          <h3 style="color:#fff;font-size:.85rem;letter-spacing:2px;margin-bottom:1rem;">TODAY'S SUMMARY</h3>
+          {% if today_logs %}
+          {% for log in today_logs %}
+          <div style="padding:.6rem 0;border-bottom:1px solid #1a1a1a;color:#aaa;font-size:.85rem;">
+            ✅ {{ log.workout.title }}
+          </div>
+          {% endfor %}
+          {% else %}
+          <p style="color:#555;font-size:.85rem;">Head to <a href="{% url 'workouts' %}" style="color:#e63329;">My Workouts</a> and mark some done today!</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script>
+function downloadCard() {
+  const card = document.getElementById('shareCard');
+  html2canvas(card, {backgroundColor:'#0a0a0a', scale:2}).then(canvas => {
+    const a = document.createElement('a');
+    a.download = 'mygym-workout-card.png';
+    a.href = canvas.toDataURL('image/png');
+    a.click();
+  });
+}
+</script>
+{% endblock %}

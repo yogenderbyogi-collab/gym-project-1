@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+{% block content %}
+<style>
+  .message-success { background:#1a3a1a; border:1px solid #48bb78; }
+  .message-error { background:#3a1a1a; border:1px solid #e63329; }
+</style>
+<div class="dashboard-layout">
+  <div class="sidebar">
+    <div class="sidebar-logo">My<span>Gym</span></div>
+    <ul class="sidebar-menu">
+      <li><a href="{% url 'dashboard' %}"><span class="icon">📊</span> Dashboard</a></li>
+      <li><a href="{% url 'workouts' %}"><span class="icon">🏋️</span> My Workouts</a></li>
+      <li><a href="{% url 'streak' %}"><span class="icon">🔥</span> Streak</a></li>
+      <li><a href="{% url 'water' %}"><span class="icon">💧</span> Water</a></li>
+      <li><a href="{% url 'timer' %}"><span class="icon">⏱️</span> Timer</a></li>
+      <li><a href="{% url 'orm' %}"><span class="icon">🏆</span> 1RM Calc</a></li>
+      <li><a href="{% url 'progress_photos' %}" class="active"><span class="icon">📸</span> Progress</a></li>
+      <li><a href="{% url 'ai_workout' %}"><span class="icon">🤖</span> AI Workout</a></li>
+      <li><a href="{% url 'workout_card' %}"><span class="icon">🃏</span> Share Card</a></li>
+      <li><a href="{% url 'settings' %}"><span class="icon">⚙️</span> Settings</a></li>
+    </ul>
+    <div class="sidebar-user">
+      <div class="user-avatar">{{ request.user.first_name|first|upper }}{{ request.user.last_name|first|upper }}</div>
+      <div><div class="user-name">{{ request.user.get_full_name }}</div><div class="user-role">MEMBER</div></div>
+    </div>
+  </div>
+  <div class="main-content">
+    <h1 style="font-size:2.2rem;font-weight:900;color:#fff;margin-bottom:.3rem;">PROGRESS <span style="color:#e63329;">PHOTOS</span></h1>
+    <p style="color:#666;margin-bottom:2rem;">Track your body transformation over time.</p>
+
+    {% if messages %}{% for msg in messages %}<div class="{% if msg.tags == 'success' %}message-success{% else %}message-error{% endif %}" style="padding:.8rem 1rem;border-radius:8px;color:#fff;margin-bottom:1rem;">{{ msg }}</div>{% endfor %}{% endif %}
+
+    <!-- Upload form -->
+    <div style="background:#111;border:1px solid #222;border-radius:16px;padding:1.5rem;margin-bottom:2rem;">
+      <h3 style="color:#fff;font-size:.9rem;letter-spacing:2px;margin-bottom:1rem;">ADD PROGRESS PHOTO</h3>
+      <form method="POST" enctype="multipart/form-data" style="display:grid;grid-template-columns:2fr 1fr 2fr auto;gap:1rem;align-items:end;">
+        {% csrf_token %}
+        <div>
+          <label style="color:#666;font-size:.7rem;letter-spacing:2px;display:block;margin-bottom:.4rem;">PHOTO</label>
+          <input type="file" name="photo" accept="image/*" required
+            style="width:100%;background:#0a0a0a;border:1px solid #333;color:#aaa;padding:.8rem;border-radius:8px;font-size:.85rem;cursor:pointer;">
+        </div>
+        <div>
+          <label style="color:#666;font-size:.7rem;letter-spacing:2px;display:block;margin-bottom:.4rem;">WEIGHT (KG)</label>
+          <input type="number" name="weight" step="0.1" placeholder="e.g. 78.5"
+            style="width:100%;background:#0a0a0a;border:1px solid #333;color:#fff;padding:.8rem;border-radius:8px;font-size:.85rem;outline:none;">
+        </div>
+        <div>
+          <label style="color:#666;font-size:.7rem;letter-spacing:2px;display:block;margin-bottom:.4rem;">NOTES</label>
+          <input type="text" name="notes" placeholder="e.g. Week 4 check-in"
+            style="width:100%;background:#0a0a0a;border:1px solid #333;color:#fff;padding:.8rem;border-radius:8px;font-size:.85rem;outline:none;">
+        </div>
+        <button type="submit" style="background:#e63329;border:none;color:#fff;padding:.85rem 1.5rem;border-radius:8px;font-weight:700;cursor:pointer;white-space:nowrap;">+ UPLOAD</button>
+      </form>
+    </div>
+
+    <!-- Photo grid -->
+    {% if photos %}
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:1rem;">
+      {% for photo in photos %}
+      <div style="background:#111;border:1px solid #222;border-radius:12px;overflow:hidden;transition:transform .2s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform='translateY(0)'">
+        <div style="position:relative;">
+          <img src="{{ photo.photo.url }}" style="width:100%;height:200px;object-fit:cover;display:block;">
+          <div style="position:absolute;top:.5rem;right:.5rem;">
+            <form method="POST" action="{% url 'delete_progress_photo' photo.id %}" onsubmit="return confirm('Delete this photo?')">
+              {% csrf_token %}
+              <button type="submit" style="background:rgba(0,0,0,.7);border:none;color:#e63329;padding:.3rem .6rem;border-radius:6px;cursor:pointer;font-size:.8rem;">✕</button>
+            </form>
+          </div>
+          {% if photo.weight %}
+          <div style="position:absolute;bottom:.5rem;left:.5rem;background:rgba(0,0,0,.8);padding:.3rem .7rem;border-radius:20px;color:#fff;font-size:.75rem;font-weight:700;">{{ photo.weight }} kg</div>
+          {% endif %}
+        </div>
+        <div style="padding:.8rem;">
+          <div style="color:#aaa;font-size:.75rem;margin-bottom:.3rem;">{{ photo.date|date:"M d, Y" }}</div>
+          {% if photo.notes %}<div style="color:#666;font-size:.8rem;">{{ photo.notes }}</div>{% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div style="text-align:center;padding:4rem;color:#555;">
+      <div style="font-size:4rem;margin-bottom:1rem;">📸</div>
+      <div>No progress photos yet. Upload your first one!</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

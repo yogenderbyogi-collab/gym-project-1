@@ -1,0 +1,139 @@
+{% extends 'base.html' %}
+{% block content %}
+<style>
+  .glass-item { opacity: 0.2; }
+  .glass-item[data-filled="1"] { opacity: 1; }
+  .history-bar { background:#4299e1; border-radius:4px 4px 0 0; min-height:4px; transition:height .5s; height: var(--bar-height, 4px); }
+</style>
+<div class="dashboard-layout" data-glasses="{{ log.glasses }}" data-goal="{{ log.goal }}">
+  <div class="sidebar">
+    <div class="sidebar-logo">My<span>Gym</span></div>
+    <ul class="sidebar-menu">
+      <li><a href="{% url 'dashboard' %}"><span class="icon">📊</span> Dashboard</a></li>
+      <li><a href="{% url 'workouts' %}"><span class="icon">🏋️</span> My Workouts</a></li>
+      <li><a href="{% url 'schedule' %}"><span class="icon">📅</span> Schedule</a></li>
+      <li><a href="{% url 'streak' %}"><span class="icon">🔥</span> Streak</a></li>
+      <li><a href="{% url 'water' %}" class="active"><span class="icon">💧</span> Water</a></li>
+      <li><a href="{% url 'timer' %}"><span class="icon">⏱️</span> Timer</a></li>
+      <li><a href="{% url 'orm' %}"><span class="icon">🏆</span> 1RM Calc</a></li>
+      <li><a href="{% url 'progress_photos' %}"><span class="icon">📸</span> Progress</a></li>
+      <li><a href="{% url 'ai_workout' %}"><span class="icon">🤖</span> AI Workout</a></li>
+      <li><a href="{% url 'workout_card' %}"><span class="icon">🃏</span> Share Card</a></li>
+      <li><a href="{% url 'settings' %}"><span class="icon">⚙️</span> Settings</a></li>
+    </ul>
+    <div class="sidebar-user">
+      <div class="user-avatar">{{ request.user.first_name|first|upper }}{{ request.user.last_name|first|upper }}</div>
+      <div><div class="user-name">{{ request.user.get_full_name }}</div><div class="user-role">MEMBER</div></div>
+    </div>
+  </div>
+  <div class="main-content">
+    <h1 style="font-size:2.2rem;font-weight:900;color:#fff;margin-bottom:.3rem;">WATER <span style="color:#4299e1;">TRACKER</span></h1>
+    <p style="color:#666;margin-bottom:2rem;">Stay hydrated — aim for {{ log.goal }} glasses today.</p>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:2rem;margin-bottom:2rem;">
+      <!-- Main tracker -->
+      <div style="background:#111;border:1px solid #222;border-radius:16px;padding:2rem;text-align:center;">
+        <div style="font-size:5rem;margin-bottom:1rem;" id="glassCount">{{ log.glasses }}</div>
+        <div style="color:#666;font-size:.8rem;letter-spacing:2px;margin-bottom:1.5rem;">OF <span id="goalCount">{{ log.goal }}</span> GLASSES</div>
+
+        <!-- Progress ring -->
+        <div style="position:relative;width:160px;height:160px;margin:0 auto 1.5rem;">
+          <svg width="160" height="160" style="transform:rotate(-90deg)">
+            <circle cx="80" cy="80" r="65" fill="none" stroke="#1a1a1a" stroke-width="12"/>
+            <circle cx="80" cy="80" r="65" fill="none" stroke="#4299e1" stroke-width="12"
+              stroke-dasharray="408" stroke-dashoffset="{{ dashoffset }}" id="progressRing"
+              stroke-linecap="round" style="transition:stroke-dashoffset .5s;"/>
+          </svg>
+          <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+            <div style="font-size:2rem;font-weight:900;color:#4299e1;" id="percentText">{{ log.glasses|add:"0" }}</div>
+            <div style="font-size:.7rem;color:#555;letter-spacing:1px;">GLASSES</div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:1rem;justify-content:center;">
+          <button onclick="updateWater('remove')" style="background:#1a1a1a;border:1px solid #333;color:#fff;width:50px;height:50px;border-radius:50%;font-size:1.5rem;cursor:pointer;">−</button>
+          <button onclick="updateWater('add')" style="background:#4299e1;border:none;color:#fff;width:50px;height:50px;border-radius:50%;font-size:1.5rem;cursor:pointer;">+</button>
+        </div>
+      </div>
+
+      <!-- Goal setter + glasses grid -->
+      <div>
+        <div style="background:#111;border:1px solid #222;border-radius:16px;padding:1.5rem;margin-bottom:1rem;">
+          <h3 style="color:#fff;font-size:.85rem;letter-spacing:2px;margin-bottom:1rem;">SET DAILY GOAL</h3>
+          <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
+            {% for g in "6 7 8 9 10 12"|split:" " %}
+            <button data-goal="{{ g }}" style="background:#1a1a1a;border:1px solid #333;color:#aaa;padding:.4rem 1rem;border-radius:6px;cursor:pointer;font-size:.85rem;" class="goal-btn">{{ g }}</button>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div style="background:#111;border:1px solid #222;border-radius:16px;padding:1.5rem;">
+          <h3 style="color:#fff;font-size:.85rem;letter-spacing:2px;margin-bottom:1rem;">GLASS TRACKER</h3>
+          <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:.5rem;" id="glassGrid">
+            {% for i in "1 2 3 4 5 6 7 8 9 10"|split:" " %}
+            <div class="glass-item" data-idx="{{ i }}" data-filled="{% if log.glasses|add:'0' >= i|add:'0' %}1{% else %}0{% endif %}"
+            style="font-size:1.8rem;text-align:center;cursor:pointer;transition:opacity .3s;">💧</div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 7-day history -->
+    <div style="background:#111;border:1px solid #222;border-radius:16px;padding:1.5rem;">
+      <h3 style="color:#fff;font-size:.85rem;letter-spacing:2px;margin-bottom:1rem;">LAST 7 DAYS</h3>
+      <div style="display:flex;gap:1rem;align-items:flex-end;height:80px;">
+        {% for h in history %}
+        <div style="flex:1;text-align:center;">
+          <div class="history-bar" data-height="{% widthratio h.glasses h.goal 60 %}"></div>
+          <div style="font-size:.65rem;color:#555;margin-top:.3rem;">{{ h.date|date:"D" }}</div>
+          <div style="font-size:.7rem;color:#aaa;">{{ h.glasses }}</div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+const container = document.querySelector('[data-glasses]');
+let glasses = parseInt(container.dataset.glasses);
+let goal    = parseInt(container.dataset.goal);
+const circumference = 2 * Math.PI * 65;
+
+function updateRing() {
+  const pct    = Math.min(glasses / goal, 1);
+  const offset = circumference * (1 - pct);
+  document.getElementById('progressRing').style.strokeDashoffset = offset;
+  document.getElementById('progressRing').setAttribute('stroke-dasharray', circumference);
+  document.getElementById('glassCount').textContent = glasses;
+  document.getElementById('goalCount').textContent  = goal;
+  document.getElementById('percentText').textContent = glasses;
+  document.querySelectorAll('.glass-item').forEach(el => {
+    el.style.opacity = parseInt(el.dataset.idx) <= glasses ? '1' : '0.2';
+  });
+}
+
+function updateWater(action) {
+  fetch("{% url 'water_update' %}", {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}'},
+    body: JSON.stringify({action})
+  }).then(r => r.json()).then(d => { glasses = d.glasses; goal = d.goal; updateRing(); });
+}
+
+function setGoal(g) {
+  fetch("{% url 'water_update' %}", {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}'},
+    body: JSON.stringify({action: 'set_goal', goal: g})
+  }).then(r => r.json()).then(d => { glasses = d.glasses; goal = d.goal; updateRing(); });
+}
+
+function toggleGlass(idx) {
+  const action = idx <= glasses ? 'remove' : 'add';
+  updateWater(action);
+}
+
+updateRing();
+</script>
+{% endblock %}

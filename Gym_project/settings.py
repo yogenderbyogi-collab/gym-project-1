@@ -122,6 +122,7 @@ STATIC_URL = 'static/'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
+
 # Email (uses Gmail — create App Password at myaccount.google.com/apppasswords)
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'

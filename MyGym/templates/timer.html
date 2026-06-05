@@ -1,0 +1,107 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="dashboard-layout">
+  <div class="sidebar">
+    <div class="sidebar-logo">My<span>Gym</span></div>
+    <ul class="sidebar-menu">
+      <li><a href="{% url 'dashboard' %}"><span class="icon">📊</span> Dashboard</a></li>
+      <li><a href="{% url 'workouts' %}"><span class="icon">🏋️</span> My Workouts</a></li>
+      <li><a href="{% url 'streak' %}"><span class="icon">🔥</span> Streak</a></li>
+      <li><a href="{% url 'water' %}"><span class="icon">💧</span> Water</a></li>
+      <li><a href="{% url 'timer' %}" class="active"><span class="icon">⏱️</span> Timer</a></li>
+      <li><a href="{% url 'orm' %}"><span class="icon">🏆</span> 1RM Calc</a></li>
+      <li><a href="{% url 'progress_photos' %}"><span class="icon">📸</span> Progress</a></li>
+      <li><a href="{% url 'ai_workout' %}"><span class="icon">🤖</span> AI Workout</a></li>
+      <li><a href="{% url 'workout_card' %}"><span class="icon">🃏</span> Share Card</a></li>
+      <li><a href="{% url 'settings' %}"><span class="icon">⚙️</span> Settings</a></li>
+    </ul>
+    <div class="sidebar-user">
+      <div class="user-avatar">{{ request.user.first_name|first|upper }}{{ request.user.last_name|first|upper }}</div>
+      <div><div class="user-name">{{ request.user.get_full_name }}</div><div class="user-role">MEMBER</div></div>
+    </div>
+  </div>
+  <div class="main-content">
+    <h1 style="font-size:2.2rem;font-weight:900;color:#fff;margin-bottom:.3rem;">WORKOUT <span style="color:#e63329;">TIMER</span></h1>
+    <p style="color:#666;margin-bottom:2rem;">Stopwatch, countdown & rest timer in one place.</p>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:2rem;">
+
+      <!-- STOPWATCH -->
+      <div style="background:#111;border:1px solid #222;border-radius:16px;padding:2rem;text-align:center;">
+        <h3 style="color:#aaa;font-size:.8rem;letter-spacing:3px;margin-bottom:1.5rem;">STOPWATCH</h3>
+        <div style="font-size:4.5rem;font-weight:900;color:#fff;font-variant-numeric:tabular-nums;letter-spacing:2px;" id="swDisplay">00:00.0</div>
+        <div style="color:#555;font-size:.8rem;margin-bottom:1.5rem;" id="swLapCount"></div>
+        <div style="display:flex;gap:1rem;justify-content:center;margin-bottom:1rem;">
+          <button id="swStart" onclick="swToggle()" style="background:#e63329;border:none;color:#fff;padding:.8rem 2rem;border-radius:8px;font-weight:700;cursor:pointer;font-size:.9rem;">START</button>
+          <button onclick="swLap()" style="background:#1a1a1a;border:1px solid #333;color:#fff;padding:.8rem 1.5rem;border-radius:8px;font-weight:700;cursor:pointer;">LAP</button>
+          <button onclick="swReset()" style="background:#1a1a1a;border:1px solid #333;color:#fff;padding:.8rem 1.5rem;border-radius:8px;font-weight:700;cursor:pointer;">RESET</button>
+        </div>
+        <div id="lapList" style="max-height:150px;overflow-y:auto;text-align:left;"></div>
+      </div>
+
+      <!-- REST TIMER -->
+      <div style="background:#111;border:1px solid #222;border-radius:16px;padding:2rem;text-align:center;">
+        <h3 style="color:#aaa;font-size:.8rem;letter-spacing:3px;margin-bottom:1.5rem;">REST TIMER</h3>
+
+        <div style="position:relative;width:180px;height:180px;margin:0 auto 1.5rem;">
+          <svg width="180" height="180" style="transform:rotate(-90deg)">
+            <circle cx="90" cy="90" r="78" fill="none" stroke="#1a1a1a" stroke-width="10"/>
+            <circle cx="90" cy="90" r="78" fill="none" stroke="#e63329" stroke-width="10"
+              stroke-dasharray="490" id="restRing" stroke-linecap="round" style="transition:stroke-dashoffset .1s;"/>
+          </svg>
+          <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+            <div style="font-size:3rem;font-weight:900;color:#fff;" id="restDisplay">60</div>
+            <div style="font-size:.7rem;color:#555;letter-spacing:1px;">SECONDS</div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:.5rem;justify-content:center;margin-bottom:1rem;flex-wrap:wrap;">
+          {% for s in "30 45 60 90 120 180"|split:" " %}
+          <button data-rest="{{ s }}" style="background:#1a1a1a;border:1px solid #333;color:#aaa;padding:.4rem .8rem;border-radius:6px;cursor:pointer;font-size:.8rem;">{{ s }}s</button>
+          {% endfor %}
+        </div>
+        <div style="display:flex;gap:1rem;justify-content:center;">
+          <button id="restStart" onclick="restToggle()" style="background:#e63329;border:none;color:#fff;padding:.8rem 2rem;border-radius:8px;font-weight:700;cursor:pointer;">START</button>
+          <button onclick="restReset()" style="background:#1a1a1a;border:1px solid #333;color:#fff;padding:.8rem 1.5rem;border-radius:8px;font-weight:700;cursor:pointer;">RESET</button>
+        </div>
+        <div style="margin-top:1rem;color:#555;font-size:.8rem;" id="restStatus"></div>
+      </div>
+
+      <!-- WORKOUT TIMER (full session) -->
+      <div style="background:#111;border:1px solid #222;border-radius:16px;padding:2rem;text-align:center;grid-column:1/-1;">
+        <h3 style="color:#aaa;font-size:.8rem;letter-spacing:3px;margin-bottom:1.5rem;">WORKOUT SESSION TIMER</h3>
+        <div style="font-size:5rem;font-weight:900;color:#48bb78;font-variant-numeric:tabular-nums;" id="sessionDisplay">00:00:00</div>
+        <div style="color:#555;font-size:.85rem;margin:1rem 0;" id="sessionStatus">Ready to train</div>
+        <div style="display:flex;gap:1rem;justify-content:center;">
+          <button id="sessionBtn" onclick="sessionToggle()" style="background:#48bb78;border:none;color:#111;padding:1rem 2.5rem;border-radius:8px;font-weight:900;cursor:pointer;font-size:1rem;letter-spacing:1px;">START SESSION</button>
+          <button onclick="sessionReset()" style="background:#1a1a1a;border:1px solid #333;color:#fff;padding:1rem 2rem;border-radius:8px;font-weight:700;cursor:pointer;">RESET</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── STOPWATCH
+let swInterval, swRunning=false, swElapsed=0, swLapStart=0, lapCount=0;
+function swFormat(ms){const t=ms/1000;const m=Math.floor(t/60).toString().padStart(2,'0');const s=Math.floor(t%60).toString().padStart(2,'0');const d=Math.floor((ms%1000)/100);return`${m}:${s}.${d}`;}
+function swToggle(){if(swRunning){clearInterval(swInterval);swRunning=false;document.getElementById('swStart').textContent='RESUME';document.getElementById('swStart').style.background='#48bb78';}else{const start=Date.now()-swElapsed;swInterval=setInterval(()=>{swElapsed=Date.now()-start;document.getElementById('swDisplay').textContent=swFormat(swElapsed);},50);swRunning=true;document.getElementById('swStart').textContent='PAUSE';document.getElementById('swStart').style.background='#f6ad55';}}
+function swLap(){if(!swRunning)return;lapCount++;const lapTime=swElapsed-swLapStart;swLapStart=swElapsed;const li=document.createElement('div');li.style.cssText='padding:.3rem .5rem;font-size:.8rem;color:#aaa;border-bottom:1px solid #222;display:flex;justify-content:space-between;';li.innerHTML=`<span>Lap ${lapCount}</span><span style="color:#e63329;">${swFormat(lapTime)}</span>`;document.getElementById('lapList').prepend(li);document.getElementById('swLapCount').textContent=`Lap ${lapCount} — ${swFormat(lapTime)}`;}
+function swReset(){clearInterval(swInterval);swRunning=false;swElapsed=0;swLapStart=0;lapCount=0;document.getElementById('swDisplay').textContent='00:00.0';document.getElementById('swStart').textContent='START';document.getElementById('swStart').style.background='#e63329';document.getElementById('lapList').innerHTML='';document.getElementById('swLapCount').textContent='';}
+
+// ── REST TIMER
+let restInterval, restRunning=false, restTotal=60, restLeft=60;
+const CIRC=490;
+function setRest(s){restReset();restTotal=s;restLeft=s;document.getElementById('restDisplay').textContent=s;}
+function updateRestRing(){const pct=restLeft/restTotal;document.getElementById('restRing').style.strokeDashoffset=CIRC*(1-pct);document.getElementById('restDisplay').textContent=restLeft;}
+function restToggle(){if(restRunning){clearInterval(restInterval);restRunning=false;document.getElementById('restStart').textContent='RESUME';}else{restInterval=setInterval(()=>{restLeft--;updateRestRing();if(restLeft<=0){clearInterval(restInterval);restRunning=false;document.getElementById('restStart').textContent='START';document.getElementById('restStatus').textContent='✅ Rest complete! Go again!';try{new Audio('data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU').play();}catch(e){}}},1000);restRunning=true;document.getElementById('restStart').textContent='PAUSE';document.getElementById('restStatus').textContent='Resting...';}}
+function restReset(){clearInterval(restInterval);restRunning=false;restLeft=restTotal;updateRestRing();document.getElementById('restStart').textContent='START';document.getElementById('restStatus').textContent='';}
+updateRestRing();
+
+// ── SESSION TIMER
+let sessInterval, sessRunning=false, sessElapsed=0;
+function sessFormat(s){const h=Math.floor(s/3600).toString().padStart(2,'0');const m=Math.floor((s%3600)/60).toString().padStart(2,'0');const sc=(s%60).toString().padStart(2,'0');return`${h}:${m}:${sc}`;}
+function sessionToggle(){if(sessRunning){clearInterval(sessInterval);sessRunning=false;document.getElementById('sessionBtn').textContent='RESUME SESSION';document.getElementById('sessionBtn').style.background='#f6ad55';document.getElementById('sessionStatus').textContent='Session paused';}else{const start=Date.now()-sessElapsed*1000;sessInterval=setInterval(()=>{sessElapsed=Math.floor((Date.now()-start)/1000);document.getElementById('sessionDisplay').textContent=sessFormat(sessElapsed);},1000);sessRunning=true;document.getElementById('sessionBtn').textContent='PAUSE SESSION';document.getElementById('sessionBtn').style.background='#e63329';document.getElementById('sessionStatus').textContent='Session in progress 💪';}}
+function sessionReset(){clearInterval(sessInterval);sessRunning=false;sessElapsed=0;document.getElementById('sessionDisplay').textContent='00:00:00';document.getElementById('sessionBtn').textContent='START SESSION';document.getElementById('sessionBtn').style.background='#48bb78';document.getElementById('sessionStatus').textContent='Ready to train';}
+</script>
+{% endblock %}

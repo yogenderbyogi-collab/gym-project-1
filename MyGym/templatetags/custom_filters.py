@@ -6,3 +6,7 @@ def get_item(dictionary, key):
     if isinstance(dictionary, dict):
         return dictionary.get(key, [])
     return []
+
+@register.filter
+def split(value, arg):
+    return value.split(arg)

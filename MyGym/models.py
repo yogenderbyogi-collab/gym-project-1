@@ -129,3 +129,27 @@ class Schedule(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.day_of_week} - {self.name}"
+
+
+class WaterLog(models.Model):
+    user    = models.ForeignKey(User, on_delete=models.CASCADE)
+    glasses = models.IntegerField(default=0)
+    goal    = models.IntegerField(default=8)
+    date    = models.DateField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'date')
+
+    def __str__(self):
+        return f"{self.user.username} - {self.date} - {self.glasses} glasses"
+
+
+class ProgressPhoto(models.Model):
+    user   = models.ForeignKey(User, on_delete=models.CASCADE)
+    photo  = models.ImageField(upload_to='progress_photos/')
+    weight = models.FloatField(null=True, blank=True)
+    notes  = models.TextField(blank=True)
+    date   = models.DateField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user.username} - {self.date}"

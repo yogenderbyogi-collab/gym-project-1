@@ -281,6 +281,7 @@
         <li><a href="{% url 'schedule' %}"><span class="icon">📅</span> Schedule</a></li>
         <li><a href="{% url 'body_stats' %}"><span class="icon">📈</span> Body Stats</a></li>
         <li><a href="{% url 'nutrition_ai' %}"><span class="icon">🥗</span> Nutrition</a></li>
+        <li><a href="{% url 'streak' %}"><span class="icon">🔥</span> Streak</a></li>
         <li><a href="{% url 'membership_qr' %}"><span class="icon">📱</span> Membership QR</a></li>
         <li><a href="{% url 'settings' %}"><span class="icon">⚙️</span> Settings</a></li>
         <li><a href="{% url 'notifications' %}">
@@ -288,8 +289,7 @@
             {% if unread_notifs %}<span class="badge">{{ unread_notifs }}</span>{% endif %}
         </a></li>
        <li><a href="{% url 'settings' %}">⚙️ Settings</a></li>
-    </ul>
-</div>
+  </ul>
     <div class="sidebar-bottom">
         <div class="sidebar-user">
             <div class="avatar">{{ user.first_name|first|upper }}{{ user.last_name|first|upper }}</div>
@@ -299,12 +299,14 @@
             </div>
         </div>
         <a href="{% url 'membership_qr' %}" style="display:block;background:#111;border:1px solid #1a1a1a;border-radius:4px;padding:1.2rem;text-decoration:none;text-align:center;margin-top:1rem;">
-  <div style="font-size:2rem;margin-bottom:0.5rem;">📱</div>
-  <div style="font-family:'Bebas Neue',sans-serif;font-size:1rem;color:#fff;letter-spacing:2px;">MEMBERSHIP QR</div>
-  <div style="font-size:0.8rem;color:#888;margin-top:0.3rem;">Tap to view check-in QR</div>
+            <div style="font-size:2rem;margin-bottom:0.5rem;">📱</div>
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:1rem;color:#fff;letter-spacing:2px;">MEMBERSHIP QR</div>
+            <div style="font-size:0.8rem;color:#888;margin-top:0.3rem;">Tap to view check-in QR</div>
         </a>
     </div>
-</div>
+</div>   ← sidebar closes here
+
+<!-- DYNAMIC CONTENT HOLDER -->
 
 <!-- DYNAMIC CONTENT HOLDER -->
 <div class="main-content-area" style="width: 100%;">

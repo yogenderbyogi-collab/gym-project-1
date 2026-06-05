@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="dashboard-layout">
+  <div class="sidebar">
+    <div class="sidebar-logo">My<span>Gym</span></div>
+    <ul class="sidebar-menu">
+      <li><a href="{% url 'dashboard' %}"><span class="icon">📊</span> Dashboard</a></li>
+      <li><a href="{% url 'workouts' %}"><span class="icon">🏋️</span> My Workouts</a></li>
+      <li><a href="{% url 'schedule' %}"><span class="icon">📅</span> Schedule</a></li>
+      <li><a href="{% url 'streak' %}" class="active"><span class="icon">🔥</span> Streak</a></li>
+      <li><a href="{% url 'body_stats' %}"><span class="icon">📈</span> Body Stats</a></li>
+      <li><a href="{% url 'nutrition_ai' %}"><span class="icon">🥗</span> Nutrition</a></li>
+      <li><a href="{% url 'settings' %}"><span class="icon">⚙️</span> Settings</a></li>
+    </ul>
+    <div class="sidebar-user">
+      <div class="user-avatar">{{ request.user.first_name|first|upper }}{{ request.user.last_name|first|upper }}</div>
+      <div>
+        <div class="user-name">{{ request.user.get_full_name }}</div>
+        <div class="user-role">{{ request.user.member.membership_type|upper }} MEMBER</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="main-content">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:2rem;">
+      <div>
+        <h1 style="font-size:2.2rem; font-weight:900; color:#fff;">WORKOUT <span style="color:#e63329;">STREAK</span></h1>
+        <p style="color:#aaa;">Your consistency heatmap — every dot is a win.</p>
+      </div>
+      <div style="background:#1a1a1a; border:1px solid #333; border-radius:12px; padding:1.5rem 2.5rem; text-align:center;">
+        <div style="font-size:3rem; font-weight:900; color:#e63329;">{{ streak }} 🔥</div>
+        <div style="color:#aaa; font-size:0.85rem; letter-spacing:1px;">DAY STREAK</div>
+      </div>
+    </div>
+
+    <div style="background:#111; border:1px solid #222; border-radius:16px; padding:2rem;">
+      <h3 style="color:#fff; margin-bottom:1.5rem; font-size:1rem; letter-spacing:2px;">LAST 12 MONTHS</h3>
+      <div id="heatmap" style="overflow-x:auto;"></div>
+      <div style="display:flex; align-items:center; gap:0.5rem; margin-top:1rem; color:#666; font-size:0.75rem;">
+        <span>Less</span>
+        <div style="width:12px;height:12px;background:#1a1a1a;border-radius:2px;border:1px solid #333;"></div>
+        <div style="width:12px;height:12px;background:#4a1010;border-radius:2px;"></div>
+        <div style="width:12px;height:12px;background:#8b1a1a;border-radius:2px;"></div>
+        <div style="width:12px;height:12px;background:#c0392b;border-radius:2px;"></div>
+        <div style="width:12px;height:12px;background:#e63329;border-radius:2px;"></div>
+        <span>More</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const dateCounts = JSON.parse('{{ date_counts_json|escapejs }}');
+
+function buildHeatmap() {
+  const container = document.getElementById('heatmap');
+  const today = new Date();
+  const start = new Date(today);
+  start.setFullYear(start.getFullYear() - 1);
+
+  // Align to Sunday
+  while (start.getDay() !== 0) start.setDate(start.getDate() - 1);
+
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const days = ['','Mon','','Wed','','Fri',''];
+
+  let html = '<div style="display:flex;gap:4px;">';
+
+  // Day labels
+  html += '<div style="display:flex;flex-direction:column;gap:3px;margin-top:20px;">';
+  days.forEach(d => {
+    html += `<div style="height:13px;font-size:10px;color:#555;width:24px;line-height:13px;">${d}</div>`;
+  });
+  html += '</div>';
+
+  let current = new Date(start);
+  let lastMonth = -1;
+
+  while (current <= today) {
+    let weekHtml = '<div style="display:flex;flex-direction:column;gap:3px;">';
+
+    // Month label
+    const monthLabel = current.getMonth() !== lastMonth ? months[current.getMonth()] : '';
+    lastMonth = current.getMonth();
+    weekHtml = `<div style="display:flex;flex-direction:column;gap:3px;"><div style="height:16px;font-size:10px;color:#666;">${monthLabel}</div>`;
+
+    for (let d = 0; d < 7; d++) {
+      if (current > today) {
+        weekHtml += '<div style="width:13px;height:13px;"></div>';
+      } else {
+        const key = current.toISOString().split('T')[0];
+        const count = dateCounts[key] || 0;
+        const color = count === 0 ? '#1a1a1a;border:1px solid #2a2a2a' 
+                    : count === 1 ? '#4a1010' 
+                    : count === 2 ? '#8b1a1a' 
+                    : count === 3 ? '#c0392b' 
+                    : '#e63329';
+        weekHtml += `<div title="${key}: ${count} workout(s)" style="width:13px;height:13px;background:${color.split(';')[0]};border-radius:2px;${color.includes('border') ? 'border:1px solid #2a2a2a;' : ''}cursor:pointer;"></div>`;
+      }
+      current.setDate(current.getDate() + 1);
+    }
+    weekHtml += '</div>';
+    html += weekHtml;
+  }
+
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+buildHeatmap();
+</script>
+{% endblock %}
