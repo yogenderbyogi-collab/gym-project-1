@@ -57,7 +57,7 @@ ROOT_URLCONF = 'Gym_project.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],   # ← Make sure this is empty now
+        'DIRS': [BASE_DIR / 'MyGym' / 'templates'],   # ← Make sure this is empty now
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -122,19 +122,16 @@ STATIC_URL = 'static/'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
+# ── API KEYS (set these in your .env file, never hardcode) ──
+GROQ_API_KEY = os.environ.get('GROQ_API_KEY', '')
 
-# Email (uses Gmail — create App Password at myaccount.google.com/apppasswords)
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'yourgmail@gmail.com'        # ← your gmail
-EMAIL_HOST_PASSWORD = 'your-app-password-here' # ← 16 char app password
-DEFAULT_FROM_EMAIL = 'MyGym <yourgmail@gmail.com>'
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'your_gmail@gmail.com'
-EMAIL_HOST_PASSWORD = 'your_app_password'
-DEFAULT_FROM_EMAIL = 'your_gmail@gmail.com'
+# ── EMAIL ──
+EMAIL_BACKEND  = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST     = 'smtp.gmail.com'
+EMAIL_PORT     = 587
+EMAIL_USE_TLS  = True
+EMAIL_HOST_USER     = os.environ.get('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
+DEFAULT_FROM_EMAIL  = os.environ.get('DEFAULT_FROM_EMAIL', '')
+
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
