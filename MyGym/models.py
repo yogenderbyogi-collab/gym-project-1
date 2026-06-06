@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
 
+
 class Member(models.Model):
 
     MEMBERSHIP_CHOICES = [
@@ -25,12 +26,13 @@ class Member(models.Model):
     address          = models.TextField(blank=True)
     membership_type  = models.CharField(max_length=20, choices=MEMBERSHIP_CHOICES, default='basic')
     join_date        = models.DateField(auto_now_add=True)
-    is_active         = models.BooleanField(default=True)
+    is_active        = models.BooleanField(default=True)
     membership_status = models.CharField(max_length=20, default='active')
-    profile_picture   = models.ImageField(upload_to='profile_pics/', blank=True, null=True)
+    profile_picture  = models.ImageField(upload_to='profile_pics/', blank=True, null=True)
 
     def __str__(self):
         return f"{self.user.username} - {self.membership_type}"
+
 
 class Nutrition(models.Model):
     user      = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -64,46 +66,54 @@ class Workout(models.Model):
 
 
 class WorkoutLog(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    workout = models.ForeignKey(Workout, on_delete=models.CASCADE)
-    completed_at = models.DateTimeField(auto_now_add=True)
+    user         = models.ForeignKey(User, on_delete=models.CASCADE, db_index=True)
+    workout      = models.ForeignKey(Workout, on_delete=models.CASCADE, db_index=True)
+    completed_at = models.DateTimeField(default=timezone.now, db_index=True)
+
+    class Meta:
+        indexes = [models.Index(fields=['user', 'completed_at'])]
 
     def __str__(self):
         return f"{self.user.username} - {self.workout.title}"
-    
+
+
 class BodyStat(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    weight = models.FloatField()
+    user     = models.ForeignKey(User, on_delete=models.CASCADE)
+    weight   = models.FloatField()
     body_fat = models.FloatField(null=True, blank=True)
-    bmi = models.FloatField(null=True, blank=True)
-    date = models.DateField(auto_now_add=True)
+    bmi      = models.FloatField(null=True, blank=True)
+    date     = models.DateField(auto_now_add=True)
 
     def __str__(self):
         return f"{self.user.username} - {self.date}"
 
 
 class Notification(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    message = models.CharField(max_length=300)
-    notif_type = models.CharField(max_length=20, default='info')  # info, success, warning
-    is_read = models.BooleanField(default=False)
-    created_at = models.DateTimeField(auto_now_add=True)
+    user       = models.ForeignKey(User, on_delete=models.CASCADE, db_index=True)
+    message    = models.CharField(max_length=300)
+    notif_type = models.CharField(max_length=20, default='info')
+    is_read    = models.BooleanField(default=False, db_index=True)
+    created_at = models.DateTimeField(default=timezone.now, db_index=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes  = [models.Index(fields=['user', 'is_read', '-created_at'])]
 
     def __str__(self):
         return f"{self.user.username} - {self.message[:40]}"
 
 
 class WorkoutSession(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    day      = models.CharField(max_length=20, default='')  
-    name     = models.CharField(max_length=100, default='')
-    activity = models.CharField(max_length=200, default='') 
+    user         = models.ForeignKey(User, on_delete=models.CASCADE)
+    day          = models.CharField(max_length=20, default='')
+    name         = models.CharField(max_length=100, default='')
+    activity     = models.CharField(max_length=200, default='')
     muscle_group = models.CharField(max_length=50, default='Custom')
-    exercises = models.TextField(blank=True)
-    duration = models.IntegerField(null=True, blank=True)
+    exercises    = models.TextField(blank=True)
+    duration     = models.IntegerField(null=True, blank=True)
     exercise_count = models.IntegerField(null=True, blank=True)
-    notes = models.TextField(blank=True)
-    color = models.CharField(max_length=20, default='#a0aec0')
+    notes        = models.TextField(blank=True)
+    color        = models.CharField(max_length=20, default='#a0aec0')
 
     def __str__(self):
         return f"{self.user.username} - {self.day} - {self.name}"
@@ -111,21 +121,27 @@ class WorkoutSession(models.Model):
 
 class Schedule(models.Model):
     COLOR_CHOICES = [
-        ('#e63329','Red'), ('#48bb78','Green'), ('#4299e1','Blue'),
-        ('#ed8936','Orange'), ('#9f7aea','Purple'),
+        ('#e63329', 'Red'),
+        ('#48bb78', 'Green'),
+        ('#4299e1', 'Blue'),
+        ('#ed8936', 'Orange'),
+        ('#9f7aea', 'Purple'),
     ]
 
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    day_of_week = models.CharField(max_length=20, default='')
-    name = models.CharField(max_length=100, default='') 
-    activity = models.CharField(max_length=200, default='')
-    muscle_group = models.CharField(max_length=50, default='Full Body')
-    exercises = models.TextField(blank=True, default='')
-    duration = models.PositiveIntegerField(null=True, blank=True)
+    user           = models.ForeignKey(User, on_delete=models.CASCADE, db_index=True)
+    day_of_week    = models.CharField(max_length=20, default='', db_index=True)
+    name           = models.CharField(max_length=100, default='')
+    activity       = models.CharField(max_length=200, default='')
+    muscle_group   = models.CharField(max_length=50, default='Full Body')
+    exercises      = models.TextField(blank=True, default='')
+    duration       = models.PositiveIntegerField(null=True, blank=True)
     exercise_count = models.PositiveIntegerField(null=True, blank=True)
-    notes = models.TextField(blank=True, default='')
-    color = models.CharField(max_length=10, choices=COLOR_CHOICES, default='#e63329')
-    created_at = models.DateTimeField(default=timezone.now)
+    notes          = models.TextField(blank=True, default='')
+    color          = models.CharField(max_length=10, choices=COLOR_CHOICES, default='#e63329')
+    created_at     = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        indexes = [models.Index(fields=['user', 'day_of_week'])]
 
     def __str__(self):
         return f"{self.user.username} - {self.day_of_week} - {self.name}"
@@ -151,5 +167,4 @@ class ProgressPhoto(models.Model):
     notes  = models.TextField(blank=True)
     date   = models.DateField(auto_now_add=True)
 
-    def __str__(self):
-        return f"{self.user.username} - {self.date}"
+    
