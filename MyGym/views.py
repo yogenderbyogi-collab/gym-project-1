@@ -21,6 +21,7 @@ import requests as req_lib
 from datetime import date, timedelta
 import json
 from collections import Counter
+from .decorators import ratelimited_view
 
 # ── HELPERS ───────────────────────────────────────────────────────────────────
 
@@ -46,6 +47,7 @@ def get_streak(user):
 def home(request):
     return render(request, 'home.html')
 
+@ratelimited_view(rate='5/m')
 def login_view(request):
     if request.user.is_authenticated:
         return redirect('home')
@@ -59,33 +61,48 @@ def login_view(request):
         return render(request, 'login.html', {'error': 'Invalid username or password!'})
     return render(request, 'login.html')
 
+@ratelimited_view(rate='3/m')
 def signup_view(request):
     if request.user.is_authenticated:
         return redirect('home')
     if request.method == 'POST':
-        first_name = request.POST['first_name']
-        last_name  = request.POST['last_name']
-        username   = request.POST['username']
-        email      = request.POST['email']
-        password1  = request.POST['password1']
-        password2  = request.POST['password2']
+        first_name = request.POST.get('first_name', '').strip()
+        last_name  = request.POST.get('last_name', '').strip()
+        username   = request.POST.get('username', '').strip()
+        email      = request.POST.get('email', '').strip()
+        password1  = request.POST.get('password1', '')
+        password2  = request.POST.get('password2', '')
+
+        errors = []
         if password1 != password2:
-            return render(request, 'signup.html', {'error': 'Passwords do not match!'})
+            errors.append('Passwords do not match!')
+        if len(password1) < 8:
+            errors.append('Password must be at least 8 characters.')
+        if not any(c.isupper() for c in password1):
+            errors.append('Password needs an uppercase letter.')
+        if not any(c.isdigit() for c in password1):
+            errors.append('Password needs a number.')
+        if not first_name or not last_name:
+            errors.append('First name and last name are required.')
         if User.objects.filter(username=username).exists():
-            return render(request, 'signup.html', {'error': 'Username already taken!'})
+            errors.append('Username already taken!')
         if User.objects.filter(email=email).exists():
-            return render(request, 'signup.html', {'error': 'Email already registered!'})
+            errors.append('Email already registered!')
+
+        if errors:
+            return render(request, 'signup.html', {
+                'error': ' '.join(errors),
+                'first_name': first_name, 'last_name': last_name,
+                'username': username, 'email': email
+            })
+
         user = User.objects.create_user(
             username=username, email=email,
             password=password1, first_name=first_name, last_name=last_name)
-        user.save()
         Member.objects.create(user=user)
-        return render(request, 'signup.html', {'success': 'Account created! You can now login.'})
+        messages.success(request, 'Account created! You can now login.')
+        return redirect('login')
     return render(request, 'signup.html')
-
-def logout_view(request):
-    logout(request)
-    return redirect('login')
 
 # ── DASHBOARD ─────────────────────────────────────────────────────────────────
 
@@ -186,9 +203,14 @@ def workouts_view(request):
     if request.method == 'POST':
         workout_id = request.POST.get('workout_id')
         if workout_id:
-            workout = Workout.objects.get(id=workout_id)
-            WorkoutLog.objects.create(user=request.user, workout=workout)
+            try:
+                workout = Workout.objects.get(id=int(workout_id))
+                WorkoutLog.objects.create(user=request.user, workout=workout)
+                messages.success(request, f'Logged: {workout.title}')
+            except (Workout.DoesNotExist, ValueError):
+                messages.error(request, 'Workout not found.')
         return redirect('workouts')
+    # ... rest stays the same
 
     now = timezone.now()
     user_workouts = Workout.objects.all()
@@ -264,8 +286,9 @@ def nutrition_view(request):
 def nutrition_ai(request):
     return render(request, 'nutrition_ai.html')
 
-@csrf_exempt
+@login_required
 @require_POST
+@ratelimited_view(rate='10/m')
 def nutrition_ai_chat(request):
     try:
         data = json.loads(request.body)
@@ -378,7 +401,7 @@ def body_stats_view(request):
 @login_required
 def membership_qr_view(request):
     import qrcode
-    member = Member.objects.get(user=request.user)
+    member, _ = Member.objects.get_or_create(user=request.user)
     member_id = hashlib.md5(f"{request.user.username}{request.user.id}".encode()).hexdigest()[:10].upper()
     qr = qrcode.QRCode(version=1, box_size=10, border=4)
     qr.add_data(f"MYGYM|{request.user.username}|{member_id}|{member.membership_type}|{member.membership_status}")
@@ -396,7 +419,7 @@ def membership_qr_view(request):
 @login_required
 def download_qr_view(request):
     import qrcode
-    member = Member.objects.get(user=request.user)
+    member, _ = Member.objects.get_or_create(user=request.user)
     member_id = hashlib.md5(f"{request.user.username}{request.user.id}".encode()).hexdigest()[:10].upper()
     qr = qrcode.QRCode(version=1, box_size=10, border=4)
     qr.add_data(f"MYGYM|{request.user.username}|{member_id}|{member.membership_type}")
@@ -414,7 +437,7 @@ def download_qr_view(request):
 @login_required
 def settings_view(request):
     try:
-        member = Member.objects.get(user=request.user)
+        member, _ = Member.objects.get(user=request.user)
     except Member.DoesNotExist:
         member = None
 
@@ -533,7 +556,7 @@ def notifications_count(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def api_profile(request):
-    member = Member.objects.get(user=request.user)
+    member, _ = Member.objects.get_or_create(user=request.user)
     return Response(MemberSerializer(member).data)
 
 @api_view(['GET'])
@@ -557,7 +580,7 @@ def api_stats(request):
         completed_at__month=now.month
     ).count()
     total  = WorkoutLog.objects.filter(user=request.user).count()
-    member = Member.objects.get(user=request.user)
+    member, _ = Member.objects.get_or_create(user=request.user)
     return Response({
         'username': request.user.username,
         'membership': member.membership_type,
