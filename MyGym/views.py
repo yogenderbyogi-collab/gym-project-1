@@ -8,20 +8,17 @@ from django.http import JsonResponse, HttpResponse, Http404
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from django.utils import timezone
-from datetime import timedelta
+from datetime import date, timedelta
 import json, os, io, base64, hashlib
+from collections import Counter
 
 from .models import Member, Workout, Schedule, Nutrition, WorkoutLog, BodyStat, Notification, WaterLog, ProgressPhoto
+from .decorators import ratelimited_view
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from .serializers import MemberSerializer, WorkoutSerializer, WorkoutLogSerializer
-
 import requests as req_lib
-from datetime import date, timedelta
-import json
-from collections import Counter
-from .decorators import ratelimited_view
 
 # ── HELPERS ───────────────────────────────────────────────────────────────────
 
@@ -29,7 +26,6 @@ def create_notification(user, message, notif_type='info'):
     Notification.objects.create(user=user, message=message, notif_type=notif_type)
 
 def get_streak(user):
-    from datetime import date, timedelta
     logs = WorkoutLog.objects.filter(user=user).values_list(
         'completed_at__date', flat=True
     ).distinct().order_by('-completed_at__date')
@@ -60,6 +56,10 @@ def login_view(request):
             return redirect('home')
         return render(request, 'login.html', {'error': 'Invalid username or password!'})
     return render(request, 'login.html')
+
+def logout_view(request):
+    logout(request)
+    return redirect('login')
 
 @ratelimited_view(rate='3/m')
 def signup_view(request):
@@ -210,7 +210,6 @@ def workouts_view(request):
             except (Workout.DoesNotExist, ValueError):
                 messages.error(request, 'Workout not found.')
         return redirect('workouts')
-    # ... rest stays the same
 
     now = timezone.now()
     user_workouts = Workout.objects.all()
@@ -235,8 +234,6 @@ def workouts_view(request):
 
 @login_required
 def schedule_view(request):
-    from datetime import date
-
     if request.method == 'POST':
         action = request.POST.get('action')
         if action == 'add':
@@ -259,8 +256,6 @@ def schedule_view(request):
 
     days = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday']
     sessions = Schedule.objects.filter(user=request.user)
-
-    # Group sessions by day for the template's get_item filter
     schedule_by_day = {}
     for day in days:
         schedule_by_day[day] = list(sessions.filter(day_of_week=day))
@@ -314,7 +309,6 @@ def nutrition_ai_chat(request):
 
     except Exception as e:
         import traceback
-        print("=== NUTRITION AI ERROR ===")
         print(traceback.format_exc())
         return JsonResponse({'error': str(e)}, status=500)
 
@@ -325,7 +319,7 @@ def food_search(request):
     if not query:
         return JsonResponse({'products': []})
 
-    USDA_KEY = 'DEMO_KEY'  # get free key at fdc.nal.usda.gov/api-key-signup.html
+    USDA_KEY = 'DEMO_KEY'
 
     try:
         response = req_lib.get(
@@ -436,11 +430,7 @@ def download_qr_view(request):
 
 @login_required
 def settings_view(request):
-    try:
-        member, _ = Member.objects.get(user=request.user)
-    except Member.DoesNotExist:
-        member = None
-
+    member, _ = Member.objects.get_or_create(user=request.user)
     active_tab = 'profile'
 
     if request.method == 'POST':
@@ -518,15 +508,12 @@ def settings_view(request):
             user.delete()
             return redirect('home')
 
-    next_billing = billing_end = None
-    if member:
-        next_billing = (request.user.date_joined + timedelta(days=30)).strftime('%B %d, %Y')
-        billing_end  = next_billing
+    next_billing = (request.user.date_joined + timedelta(days=30)).strftime('%B %d, %Y')
 
     return render(request, 'settings.html', {
         'member': member,
         'next_billing': next_billing,
-        'billing_end': billing_end,
+        'billing_end': next_billing,
         'active_tab': active_tab,
     })
 
@@ -596,7 +583,6 @@ def api_stats(request):
 def export_workout_pdf(request):
     from reportlab.pdfgen import canvas
     from reportlab.lib.pagesizes import A4
-    from datetime import date
 
     buffer = io.BytesIO()
     p = canvas.Canvas(buffer, pagesize=A4)
@@ -666,11 +652,11 @@ def export_workout_pdf(request):
 @login_required
 def send_email_report(request):
     from django.core.mail import send_mail
-    now    = timezone.now()
+    now     = timezone.now()
     monthly = WorkoutLog.objects.filter(user=request.user, completed_at__year=now.year, completed_at__month=now.month).count()
     streak  = get_streak(request.user)
     total   = WorkoutLog.objects.filter(user=request.user).count()
-    member  = Member.objects.get(user=request.user)
+    member, _ = Member.objects.get_or_create(user=request.user)
     name    = request.user.get_full_name() or request.user.username
 
     try:
@@ -686,10 +672,10 @@ def send_email_report(request):
         messages.error(request, f'Email failed: {str(e)}')
     return redirect('dashboard')
 
+# ── STREAK ────────────────────────────────────────────────────────────────────
+
 @login_required
 def streak_view(request):
-    from datetime import date
-    from collections import Counter
     logs = WorkoutLog.objects.filter(user=request.user)
     date_counts = Counter(log.completed_at.date().isoformat() for log in logs)
     streak = get_streak(request.user)
@@ -699,7 +685,8 @@ def streak_view(request):
     for i in range(365):
         d = (today - timedelta(days=i)).isoformat()
         if d in date_counts:
-            cur += 1; best = max(best, cur)
+            cur += 1
+            best = max(best, cur)
         else:
             cur = 0
     return render(request, 'streak.html', {
@@ -709,6 +696,8 @@ def streak_view(request):
         'total_workouts': total,
     })
 
+# ── 1RM CALCULATOR ────────────────────────────────────────────────────────────
+
 @login_required
 def orm_view(request):
     result = None
@@ -717,14 +706,9 @@ def orm_view(request):
             weight = float(request.POST.get('weight', 0))
             reps   = int(request.POST.get('reps', 0))
             if weight > 0 and reps > 0:
-                # Brzycki formula
                 orm = weight / (1.0278 - 0.0278 * reps)
                 result = {
                     'orm':    round(orm, 1),
-                    'p90':    round(orm * 0.90, 1),
-                    'p80':    round(orm * 0.80, 1),
-                    'p70':    round(orm * 0.70, 1),
-                    'p60':    round(orm * 0.60, 1),
                     'weight': weight,
                     'reps':   reps,
                     'zones': [
@@ -738,11 +722,10 @@ def orm_view(request):
             pass
     return render(request, 'orm.html', {'result': result})
 
-# ── WATER LOG ─────────────────────────────────────────────────────────────────
+# ── WATER TRACKER ─────────────────────────────────────────────────────────────
 
 @login_required
 def water_view(request):
-    from datetime import date
     today = date.today()
     log, _ = WaterLog.objects.get_or_create(user=request.user, date=today)
     history = WaterLog.objects.filter(user=request.user).order_by('-date')[:7]
@@ -751,7 +734,6 @@ def water_view(request):
 @login_required
 @require_POST
 def water_update(request):
-    from datetime import date
     data   = json.loads(request.body)
     action = data.get('action')
     today  = date.today()
@@ -765,33 +747,37 @@ def water_update(request):
     log.save()
     return JsonResponse({'glasses': log.glasses, 'goal': log.goal})
 
-@login_required
-def progress_photos_view(request):
-    if request.method == 'POST':
-        photo  = request.FILES.get('photo')
-        weight = request.POST.get('weight', '').strip() or None
-        notes  = request.POST.get('notes', '').strip()
-        if photo:
-            ProgressPhoto.objects.create(
-                user=request.user, photo=photo,
-                weight=float(weight) if weight else None, notes=notes)
-            messages.success(request, 'Progress photo saved!')
-        return redirect('progress_photos')
-    photos = ProgressPhoto.objects.filter(user=request.user).order_by('-date')
-    return render(request, 'progress_photos.html', {'photos': photos})
+# ── PROGRESS PHOTOS ───────────────────────────────────────────────────────────
 
 @login_required
-def delete_progress_photo(request, pk):
-    ProgressPhoto.objects.filter(id=pk, user=request.user).delete()
+def progress_photos_view(request):
+    from .models import ProgressPhoto
+    if request.method == 'POST' and request.FILES.get('photo'):
+        ProgressPhoto.objects.create(
+            user=request.user,
+            photo=request.FILES['photo'],
+            notes=request.POST.get('notes', '')
+        )
+        return redirect('progress_photos')
+    photos = ProgressPhoto.objects.filter(user=request.user).order_by('-date')
+    return render(request, 'progressphotos.html', {'photos': photos})
+
+@login_required
+def delete_progress_photo(request, photo_id):
+    from .models import ProgressPhoto
+    ProgressPhoto.objects.filter(id=photo_id, user=request.user).delete()
     return redirect('progress_photos')
+
+# ── TIMER ─────────────────────────────────────────────────────────────────────
 
 @login_required
 def timer_view(request):
     return render(request, 'timer.html')
 
+# ── WORKOUT SHARE CARD ────────────────────────────────────────────────────────
+
 @login_required
 def workout_card_view(request):
-    from datetime import date
     today_logs = WorkoutLog.objects.filter(
         user=request.user,
         completed_at__date=date.today()
@@ -805,35 +791,38 @@ def workout_card_view(request):
         'today': date.today().strftime('%B %d, %Y'),
     })
 
+# ── AI WORKOUT GENERATOR ──────────────────────────────────────────────────────
+
 @login_required
 def ai_workout_view(request):
-    return render(request, 'ai_workout.html')
+    return render(request, 'Aiworkout.html')
 
-@csrf_exempt
+@login_required
 @require_POST
 def ai_workout_generate(request):
     try:
         data   = json.loads(request.body)
-        goal   = data.get('goal', 'muscle gain')
-        muscle = data.get('muscle', 'full body')
+        goal   = data.get('goal', 'muscle_gain')
         level  = data.get('level', 'intermediate')
         days   = data.get('days', 4)
+        equipment = data.get('equipment', 'full_gym')
+
         api_key = os.environ.get('GROQ_API_KEY', '')
         if not api_key:
             return JsonResponse({'error': 'GROQ_API_KEY not set'}, status=500)
+
         from groq import Groq
         client = Groq(api_key=api_key)
-        prompt = f"""You are an expert personal trainer. Generate a {days}-day workout plan.
-Goal: {goal}, Focus: {muscle}, Level: {level}
-Return ONLY a JSON object (no markdown):
-{{"plan_name":"string","days":[{{"day":"Day 1 - Monday","focus":"Chest","exercises":[{{"name":"Bench Press","sets":4,"reps":"8-10","rest":"90s","tip":"Keep back flat"}}]}}],"tips":["tip1"]}}"""
+        prompt = f"""Create a {days}-day workout plan for a {level} level person.
+Goal: {goal}. Equipment: {equipment}.
+For each day provide: Day name, muscle groups, 4-6 exercises with sets/reps.
+Format as structured text."""
+
         response = client.chat.completions.create(
-            model="llama-3.3-70b-versatile", max_tokens=2000,
-            messages=[{"role": "user", "content": prompt}])
-        raw  = response.choices[0].message.content.strip()
-        raw  = raw.replace('```json','').replace('```','').strip()
-        plan = json.loads(raw)
-        return JsonResponse({'plan': plan})
+            model="llama-3.3-70b-versatile",
+            max_tokens=1500,
+            messages=[{"role": "user", "content": prompt}]
+        )
+        return JsonResponse({'plan': response.choices[0].message.content})
     except Exception as e:
-        import traceback; print(traceback.format_exc())
         return JsonResponse({'error': str(e)}, status=500)
