@@ -1,19 +1,19 @@
 {% extends 'base.html' %}
-{% load custom_filters %}
 {% block content %}
+{% load custom_filters %}
 <div class="dashboard-layout">
   <div class="sidebar">
     <div class="sidebar-logo">My<span>Gym</span></div>
     <ul class="sidebar-menu">
-      <li><a href="{% url 'dashboard' %}"><span class="icon">📊</span> Dashboard</a></li>
-      <li><a href="{% url 'home' %}"><span class="icon">🏠</span> Home</a></li>
-      <li><a href="{% url 'workouts' %}"><span class="icon">🏋️</span> My Workouts</a></li>
-      <li><a href="{% url 'schedule' %}" class="active"><span class="icon">📅</span> Schedule</a></li>
-      <li><a href="{% url 'body_stats' %}"><span class="icon">📈</span> Body Stats</a></li>
-      <li><a href="{% url 'nutrition_ai' %}"><span class="icon">🥗</span> Nutrition</a></li>
-      <li><a href="{% url 'membership_qr' %}"><span class="icon">🪪</span> Membership QR</a></li>
-      <li><a href="{% url 'notifications' %}"><span class="icon">🔔</span> Notifications</a></li>
-      <li><a href="{% url 'settings' %}"><span class="icon">⚙️</span> Settings</a></li>
+      <li><a href="{% url 'dashboard' %}">📊 Dashboard</a></li>
+      <li><a href="{% url 'home' %}">🏠 Home</a></li>
+      <li><a href="{% url 'workouts' %}">🏋️ My Workouts</a></li>
+      <li><a href="{% url 'schedule' %}">📅 Schedule</a></li>
+      <li><a href="{% url 'body_stats' %}">📈 Body Stats</a></li>
+      <li><a href="{% url 'nutrition_ai' %}">🥗 Nutrition</a></li>
+      <li><a href="{% url 'membership_qr' %}">🪪 Membership QR</a></li>
+      <li><a href="{% url 'notifications' %}">🔔 Notifications</a></li>
+      <li><a href="{% url 'settings' %}">⚙️ Settings</a></li>
     </ul>
     <div class="sidebar-member">
       <div class="member-avatar">{{ request.user.username|first|upper }}</div>

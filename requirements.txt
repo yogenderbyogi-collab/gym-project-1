@@ -1,12 +1,38 @@
-Django>=6.0
+# Django framework
+django>=4.2,<6.0
+
+# Django REST API framework
 djangorestframework>=3.14.0
+
+# Read .env files
 python-dotenv>=1.0.0
+
+# AI chat (Groq API)
 groq>=0.4.0
+
+# QR Code generation
 qrcode>=7.4.2
+
+# Image processing (for profile pictures)
 Pillow>=10.0.0
+
+# PDF generation (for workout reports)
 reportlab>=4.0.0
-django-ratelimit>=4.1.0
+
+# HTTP requests (for food search API)
 requests>=2.31.0
+
+# Rate limiting (prevents spam)
+django-ratelimit>=4.1.0
+
+# HTML sanitization (prevents XSS attacks)
+bleach>=6.1.0
+
+# Production database (PostgreSQL)
 psycopg2-binary>=2.9.9
+
+# Production web server
 gunicorn>=21.2.0
+
+# Static file serving in production
 whitenoise>=6.6.0

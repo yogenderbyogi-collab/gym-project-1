@@ -63,45 +63,78 @@ def logout_view(request):
 
 @ratelimited_view(rate='3/m')
 def signup_view(request):
+    """
+    Handles user registration with strong password validation.
+    """
     if request.user.is_authenticated:
         return redirect('home')
+    
     if request.method == 'POST':
+        # Get all form data and remove extra spaces
         first_name = request.POST.get('first_name', '').strip()
         last_name  = request.POST.get('last_name', '').strip()
         username   = request.POST.get('username', '').strip()
         email      = request.POST.get('email', '').strip()
         password1  = request.POST.get('password1', '')
         password2  = request.POST.get('password2', '')
-
+        
+        # Collect all errors (so user sees everything at once)
         errors = []
+        
+        # Check passwords match
         if password1 != password2:
             errors.append('Passwords do not match!')
+        
+        # Check password length
         if len(password1) < 8:
-            errors.append('Password must be at least 8 characters.')
+            errors.append('Password must be at least 8 characters long.')
+        
+        # Check for uppercase letter
         if not any(c.isupper() for c in password1):
-            errors.append('Password needs an uppercase letter.')
+            errors.append('Password must contain at least one uppercase letter (A-Z).')
+        
+        # Check for lowercase letter
+        if not any(c.islower() for c in password1):
+            errors.append('Password must contain at least one lowercase letter (a-z).')
+        
+        # Check for number
         if not any(c.isdigit() for c in password1):
-            errors.append('Password needs a number.')
-        if not first_name or not last_name:
-            errors.append('First name and last name are required.')
+            errors.append('Password must contain at least one number (0-9).')
+        
+        # Check for special character
+        if not any(c in '!@#$%^&*()_+-=[]{}|;:,.<>?' for c in password1):
+            errors.append('Password must contain at least one special character (!@#$ etc).')
+        
+        # Check username is taken
         if User.objects.filter(username=username).exists():
             errors.append('Username already taken!')
+        
+        # Check email is taken
         if User.objects.filter(email=email).exists():
             errors.append('Email already registered!')
-
+        
+        # Check names are not empty
+        if not first_name or not last_name:
+            errors.append('First name and last name are required.')
+        
+        # If there are errors, show them
         if errors:
             return render(request, 'signup.html', {
                 'error': ' '.join(errors),
-                'first_name': first_name, 'last_name': last_name,
-                'username': username, 'email': email
+                'first_name': first_name,
+                'last_name': last_name,
+                'username': username,
+                'email': email
             })
-
+        
+        # All checks passed! Create the user
         user = User.objects.create_user(
             username=username, email=email,
             password=password1, first_name=first_name, last_name=last_name)
         Member.objects.create(user=user)
         messages.success(request, 'Account created! You can now login.')
         return redirect('login')
+    
     return render(request, 'signup.html')
 
 # ── DASHBOARD ─────────────────────────────────────────────────────────────────

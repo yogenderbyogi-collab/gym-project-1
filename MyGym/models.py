@@ -2,6 +2,8 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
 
+from MyGym.managers import BodyStatManager, WorkoutLogManager
+
 
 class Member(models.Model):
 
@@ -66,12 +68,16 @@ class Workout(models.Model):
 
 
 class WorkoutLog(models.Model):
-    user         = models.ForeignKey(User, on_delete=models.CASCADE, db_index=True)
-    workout      = models.ForeignKey(Workout, on_delete=models.CASCADE, db_index=True)
-    completed_at = models.DateTimeField(default=timezone.now, db_index=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, db_index=True)
+    workout = models.ForeignKey(Workout, on_delete=models.CASCADE, db_index=True)
+    completed_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    objects = WorkoutLogManager()
 
     class Meta:
-        indexes = [models.Index(fields=['user', 'completed_at'])]
+        indexes = [
+            models.Index(fields=['user', 'completed_at']),
+        ]
 
     def __str__(self):
         return f"{self.user.username} - {self.workout.title}"
@@ -83,6 +89,7 @@ class BodyStat(models.Model):
     body_fat = models.FloatField(null=True, blank=True)
     bmi      = models.FloatField(null=True, blank=True)
     date     = models.DateField(auto_now_add=True)
+    objects = BodyStatManager()
 
     def __str__(self):
         return f"{self.user.username} - {self.date}"
@@ -92,8 +99,8 @@ class Notification(models.Model):
     user       = models.ForeignKey(User, on_delete=models.CASCADE, db_index=True)
     message    = models.CharField(max_length=300)
     notif_type = models.CharField(max_length=20, default='info')
-    is_read    = models.BooleanField(default=False, db_index=True)
-    created_at = models.DateTimeField(default=timezone.now, db_index=True)
+    is_read = models.BooleanField(default=False, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
 
     class Meta:
         ordering = ['-created_at']
@@ -148,23 +155,30 @@ class Schedule(models.Model):
 
 
 class WaterLog(models.Model):
-    user    = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, db_index=True)
     glasses = models.IntegerField(default=0)
     goal    = models.IntegerField(default=8)
-    date    = models.DateField(auto_now_add=True)
+    date = models.DateField(auto_now_add=True, db_index=True)
 
     class Meta:
         unique_together = ('user', 'date')
+        indexes = [
+            models.Index(fields=['user', '-date']),
+        ]
+
 
     def __str__(self):
         return f"{self.user.username} - {self.date} - {self.glasses} glasses"
 
 
 class ProgressPhoto(models.Model):
-    user   = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, db_index=True)
     photo  = models.ImageField(upload_to='progress_photos/')
     weight = models.FloatField(null=True, blank=True)
     notes  = models.TextField(blank=True)
     date   = models.DateField(auto_now_add=True)
 
-    
+    class Meta:
+        indexes = [
+            models.Index(fields=['user', '-date']),
+        ]

@@ -638,11 +638,31 @@ async function sendChat() {
 async function callClaude(messages) {
   let res;
   try {
-    res = await fetch('/nutrition/ai-chat/', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
-      body: JSON.stringify({ messages })
-    });
+    res = await // Add this function ONCE at the top of your script
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// Then update your fetch call:
+fetch('/nutrition/ai-chat/', {
+    method: 'POST',
+    headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCookie('csrftoken'),  // <-- ADD THIS LINE
+    },
+    body: JSON.stringify({messages: msgs})
+})
   } catch(networkErr) {
     throw new Error('Network error — is the Django server running? ' + networkErr.message);
   }

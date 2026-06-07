@@ -288,7 +288,7 @@
             <span class="icon">🔔</span> Notifications
             {% if unread_notifs %}<span class="badge">{{ unread_notifs }}</span>{% endif %}
         </a></li>
-       <li><a href="{% url 'settings' %}">⚙️ Settings</a></li>
+             <li><a href="{% url 'settings' %}">&#9881; Settings</a></li>
   </ul>
     <div class="sidebar-bottom">
         <div class="sidebar-user">
@@ -304,12 +304,9 @@
             <div style="font-size:0.8rem;color:#888;margin-top:0.3rem;">Tap to view check-in QR</div>
         </a>
     </div>
-</div>   ← sidebar closes here
+</div>  <!-- sidebar closes -->
 
-<!-- DYNAMIC CONTENT HOLDER -->
-
-<!-- DYNAMIC CONTENT HOLDER -->
-<div class="main-content-area" style="width: 100%;">
+<div class="main">
     {% block dashboard_content %}
     <div style="padding: 40px; margin-left: 260px;">
         <div class="page-header">
