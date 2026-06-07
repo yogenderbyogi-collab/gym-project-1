@@ -5,7 +5,6 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth import update_session_auth_hash
 from django.contrib import messages
 from django.http import JsonResponse, HttpResponse, Http404
-from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from django.utils import timezone
 from datetime import date, timedelta
@@ -68,56 +67,36 @@ def signup_view(request):
     """
     if request.user.is_authenticated:
         return redirect('home')
-    
+
     if request.method == 'POST':
-        # Get all form data and remove extra spaces
         first_name = request.POST.get('first_name', '').strip()
-        last_name  = request.POST.get('last_name', '').strip()
-        username   = request.POST.get('username', '').strip()
-        email      = request.POST.get('email', '').strip()
-        password1  = request.POST.get('password1', '')
-        password2  = request.POST.get('password2', '')
-        
-        # Collect all errors (so user sees everything at once)
+        last_name = request.POST.get('last_name', '').strip()
+        username = request.POST.get('username', '').strip()
+        email = request.POST.get('email', '').strip()
+        password1 = request.POST.get('password1', '')
+        password2 = request.POST.get('password2', '')
+
         errors = []
-        
-        # Check passwords match
+
         if password1 != password2:
             errors.append('Passwords do not match!')
-        
-        # Check password length
         if len(password1) < 8:
             errors.append('Password must be at least 8 characters long.')
-        
-        # Check for uppercase letter
         if not any(c.isupper() for c in password1):
             errors.append('Password must contain at least one uppercase letter (A-Z).')
-        
-        # Check for lowercase letter
         if not any(c.islower() for c in password1):
             errors.append('Password must contain at least one lowercase letter (a-z).')
-        
-        # Check for number
         if not any(c.isdigit() for c in password1):
             errors.append('Password must contain at least one number (0-9).')
-        
-        # Check for special character
         if not any(c in '!@#$%^&*()_+-=[]{}|;:,.<>?' for c in password1):
             errors.append('Password must contain at least one special character (!@#$ etc).')
-        
-        # Check username is taken
         if User.objects.filter(username=username).exists():
             errors.append('Username already taken!')
-        
-        # Check email is taken
         if User.objects.filter(email=email).exists():
             errors.append('Email already registered!')
-        
-        # Check names are not empty
         if not first_name or not last_name:
             errors.append('First name and last name are required.')
-        
-        # If there are errors, show them
+
         if errors:
             return render(request, 'signup.html', {
                 'error': ' '.join(errors),
@@ -126,15 +105,14 @@ def signup_view(request):
                 'username': username,
                 'email': email
             })
-        
-        # All checks passed! Create the user
+
         user = User.objects.create_user(
             username=username, email=email,
             password=password1, first_name=first_name, last_name=last_name)
         Member.objects.create(user=user)
         messages.success(request, 'Account created! You can now login.')
         return redirect('login')
-    
+
     return render(request, 'signup.html')
 
 # ── DASHBOARD ─────────────────────────────────────────────────────────────────
@@ -242,7 +220,7 @@ def workouts_view(request):
                 messages.success(request, f'Logged: {workout.title}')
             except (Workout.DoesNotExist, ValueError):
                 messages.error(request, 'Workout not found.')
-        return redirect('workouts')
+            return redirect('workouts')
 
     now = timezone.now()
     user_workouts = Workout.objects.all()
@@ -373,10 +351,10 @@ def food_search(request):
             if not name:
                 continue
             nutrients = {n['nutrientName']: n['value'] for n in food.get('foodNutrients', [])}
-            cal  = round(nutrients.get('Energy', 0))
+            cal = round(nutrients.get('Energy', 0))
             prot = round(nutrients.get('Protein', 0), 1)
             carb = round(nutrients.get('Carbohydrate, by difference', 0), 1)
-            fat  = round(nutrients.get('Total lipid (fat)', 0), 1)
+            fat = round(nutrients.get('Total lipid (fat)', 0), 1)
             if not cal:
                 continue
             filtered.append({
@@ -402,9 +380,9 @@ def food_search(request):
 def body_stats_view(request):
     if request.method == 'POST':
         try:
-            weight   = float(request.POST.get('weight', 0) or 0)
+            weight = float(request.POST.get('weight', 0) or 0)
             body_fat = request.POST.get('body_fat', '').strip() or None
-            height   = request.POST.get('height', '').strip()
+            height = request.POST.get('height', '').strip()
             if weight <= 0:
                 messages.error(request, 'Weight must be greater than zero.')
                 return redirect('body_stats')
@@ -472,8 +450,8 @@ def settings_view(request):
         if action == 'update_profile':
             user = request.user
             user.first_name = request.POST.get('first_name', '').strip()
-            user.last_name  = request.POST.get('last_name', '').strip()
-            user.email      = request.POST.get('email', '').strip()
+            user.last_name = request.POST.get('last_name', '').strip()
+            user.email = request.POST.get('email', '').strip()
             if request.FILES.get('profile_picture') and member:
                 member.profile_picture = request.FILES['profile_picture']
                 member.save()
@@ -482,11 +460,11 @@ def settings_view(request):
                 if User.objects.filter(username=new_username).exclude(pk=user.pk).exists():
                     messages.error(request, 'That username is already taken.')
                     return render(request, 'settings.html', {'member': member, 'active_tab': active_tab})
-            user.username = new_username or user.username
+                user.username = new_username or user.username
             user.save()
             if member:
-                member.phone            = request.POST.get('phone', '').strip()
-                member.fitness_goal     = request.POST.get('fitness_goal', '')
+                member.phone = request.POST.get('phone', '').strip()
+                member.fitness_goal = request.POST.get('fitness_goal', '')
                 member.experience_level = request.POST.get('experience_level', '')
                 member.save()
             messages.success(request, 'Profile updated successfully.')
@@ -495,7 +473,7 @@ def settings_view(request):
         elif action == 'change_password':
             active_tab = 'password'
             current_pw = request.POST.get('current_password', '')
-            new_pw     = request.POST.get('new_password', '')
+            new_pw = request.POST.get('new_password', '')
             confirm_pw = request.POST.get('confirm_password', '')
             if not request.user.check_password(current_pw):
                 messages.error(request, 'Current password is incorrect.')
@@ -518,21 +496,21 @@ def settings_view(request):
                 member.membership_type = plan
                 member.save()
                 messages.success(request, f'Plan changed to {plan.capitalize()} successfully.')
-            return redirect('settings')
+                return redirect('settings')
 
         elif action == 'freeze_membership':
             if member:
                 member.membership_status = 'frozen'
                 member.save()
-            messages.success(request, 'Your membership has been frozen.')
-            return redirect('settings')
+                messages.success(request, 'Your membership has been frozen.')
+                return redirect('settings')
 
         elif action == 'cancel_membership':
             if member:
                 member.membership_status = 'cancelled'
                 member.save()
-            messages.success(request, 'Membership cancellation requested.')
-            return redirect('settings')
+                messages.success(request, 'Membership cancellation requested.')
+                return redirect('settings')
 
         elif action == 'delete_account':
             from django.contrib.auth import logout as auth_logout
@@ -599,7 +577,7 @@ def api_stats(request):
         completed_at__year=now.year,
         completed_at__month=now.month
     ).count()
-    total  = WorkoutLog.objects.filter(user=request.user).count()
+    total = WorkoutLog.objects.filter(user=request.user).count()
     member, _ = Member.objects.get_or_create(user=request.user)
     return Response({
         'username': request.user.username,
@@ -634,8 +612,8 @@ def export_workout_pdf(request):
 
     now = timezone.now()
     monthly = WorkoutLog.objects.filter(user=request.user, completed_at__year=now.year, completed_at__month=now.month).count()
-    streak  = get_streak(request.user)
-    total   = WorkoutLog.objects.filter(user=request.user).count()
+    streak = get_streak(request.user)
+    total = WorkoutLog.objects.filter(user=request.user).count()
 
     for i, (val, label, x) in enumerate([(monthly,'THIS MONTH',40),(streak,'DAY STREAK',210),(total,'TOTAL',380)]):
         p.setFillColorRGB(0.1, 0.1, 0.1)
@@ -685,12 +663,12 @@ def export_workout_pdf(request):
 @login_required
 def send_email_report(request):
     from django.core.mail import send_mail
-    now     = timezone.now()
+    now = timezone.now()
     monthly = WorkoutLog.objects.filter(user=request.user, completed_at__year=now.year, completed_at__month=now.month).count()
-    streak  = get_streak(request.user)
-    total   = WorkoutLog.objects.filter(user=request.user).count()
+    streak = get_streak(request.user)
+    total = WorkoutLog.objects.filter(user=request.user).count()
     member, _ = Member.objects.get_or_create(user=request.user)
-    name    = request.user.get_full_name() or request.user.username
+    name = request.user.get_full_name() or request.user.username
 
     try:
         send_mail(
@@ -712,7 +690,7 @@ def streak_view(request):
     logs = WorkoutLog.objects.filter(user=request.user)
     date_counts = Counter(log.completed_at.date().isoformat() for log in logs)
     streak = get_streak(request.user)
-    total  = WorkoutLog.objects.filter(user=request.user).count()
+    total = WorkoutLog.objects.filter(user=request.user).count()
     best = cur = 0
     today = date.today()
     for i in range(365):
@@ -737,18 +715,18 @@ def orm_view(request):
     if request.method == 'POST':
         try:
             weight = float(request.POST.get('weight', 0))
-            reps   = int(request.POST.get('reps', 0))
+            reps = int(request.POST.get('reps', 0))
             if weight > 0 and reps > 0:
                 orm = weight / (1.0278 - 0.0278 * reps)
                 result = {
-                    'orm':    round(orm, 1),
+                    'orm': round(orm, 1),
                     'weight': weight,
-                    'reps':   reps,
+                    'reps': reps,
                     'zones': [
-                        ('90% — Heavy',       round(orm * 0.90, 1), '#e63329', '3-5 reps'),
-                        ('80% — Strength',    round(orm * 0.80, 1), '#f6ad55', '5-8 reps'),
+                        ('90% — Heavy', round(orm * 0.90, 1), '#e63329', '3-5 reps'),
+                        ('80% — Strength', round(orm * 0.80, 1), '#f6ad55', '5-8 reps'),
                         ('70% — Hypertrophy', round(orm * 0.70, 1), '#68d391', '8-12 reps'),
-                        ('60% — Endurance',   round(orm * 0.60, 1), '#4299e1', '12-15 reps'),
+                        ('60% — Endurance', round(orm * 0.60, 1), '#4299e1', '12-15 reps'),
                     ]
                 }
         except (ValueError, ZeroDivisionError):
@@ -767,9 +745,9 @@ def water_view(request):
 @login_required
 @require_POST
 def water_update(request):
-    data   = json.loads(request.body)
+    data = json.loads(request.body)
     action = data.get('action')
-    today  = date.today()
+    today = date.today()
     log, _ = WaterLog.objects.get_or_create(user=request.user, date=today)
     if action == 'add' and log.glasses < 20:
         log.glasses += 1
@@ -816,7 +794,7 @@ def workout_card_view(request):
         completed_at__date=date.today()
     ).select_related('workout')
     streak = get_streak(request.user)
-    total  = WorkoutLog.objects.filter(user=request.user).count()
+    total = WorkoutLog.objects.filter(user=request.user).count()
     return render(request, 'workout_card.html', {
         'today_logs': today_logs,
         'streak': streak,
@@ -832,12 +810,13 @@ def ai_workout_view(request):
 
 @login_required
 @require_POST
+@ratelimited_view(rate='10/m')
 def ai_workout_generate(request):
     try:
-        data   = json.loads(request.body)
-        goal   = data.get('goal', 'muscle_gain')
-        level  = data.get('level', 'intermediate')
-        days   = data.get('days', 4)
+        data = json.loads(request.body)
+        goal = data.get('goal', 'muscle_gain')
+        level = data.get('level', 'intermediate')
+        days = data.get('days', 4)
         equipment = data.get('equipment', 'full_gym')
 
         api_key = os.environ.get('GROQ_API_KEY', '')

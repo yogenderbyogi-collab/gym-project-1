@@ -1,8 +1,11 @@
 .env
-db.sqlite3
-__pycache__/
 *.pyc
-*.pyo
-media/
-staticfiles/
-*.sqlite3
+__pycache__/
+db.sqlite3
+/staticfiles/
+/media/
+/logs/
+*.log
+.DS_Store
+.vscode/
+.idea/

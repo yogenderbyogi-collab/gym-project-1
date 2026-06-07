@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: mygymdb
+      POSTGRES_USER: mygymuser
+      POSTGRES_PASSWORD: mygymsuper
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  web:
+    build: .
+    environment:
+      SECRET_KEY: ${SECRET_KEY}
+      DEBUG: "False"
+      DATABASE_URL: postgres://mygymuser:mygymsuper@db:5432/mygymdb
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    volumes:
+      - media:/app/media
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+volumes:
+  postgres_data:
+  media:
